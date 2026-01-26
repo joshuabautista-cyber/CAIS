@@ -15,12 +15,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import axios from 'axios';
 
-const API_URL = 'http://192.168.107.101:8000/api';
+const API_URL = 'http://192.168.107.151:8000/api';
 
 export default function App() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('adminpassword');
+  const [email, setEmail] = useState('student@test.com');
+  const [password, setPassword] = useState('password');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -113,7 +113,7 @@ export default function App() {
 
             <TouchableOpacity
               className="mt-12 h-[60px] w-[40%] self-center items-center justify-center rounded bg-[#60c047ff]"
-              onPress={() => Alert.alert("Schedule button pressed")}
+              onPress={() => router.push("/subjects-schedule")}
             >
               <Text className="text-center font-bold text-white">
                 Subjects Schedule {"\n"} (Real Time)

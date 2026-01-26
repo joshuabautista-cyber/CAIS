@@ -1,18 +1,10 @@
-import { StyleSheet, View, Image , TouchableOpacity} from 'react-native';
-import { Text } from 'react-native';
-import React, { useState } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
-import clsuLogoGreen from '../../assets/images/clsuLogoGreen.png';
-import { Dropdown } from 'react-native-element-dropdown';
-import { AntDesign } from '@expo/vector-icons';
-import { navigate } from 'expo-router/build/global-state/routing';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Alert } from 'react-native';
+import { StyleSheet, View, Image, TouchableOpacity, Alert, Text } from 'react-native';
+import React from 'react';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // ✅ IMPORT THIS
 
-const profile = () => {
-
-   const router = useRouter(); // Initialize the router
+const Profile = () => {
+  const router = useRouter(); 
 
   // Navigation handlers
   const handleEditProfile = () => {
@@ -34,9 +26,16 @@ const profile = () => {
         },
         {
           text: 'Logout',
-          onPress: () => {
-            // Add your logout logic here
-            router.replace('/'); // Navigate to login/home screen
+          onPress: async () => {
+            try {
+              // ✅ DESTROY THE TOKEN
+              await AsyncStorage.removeItem('token');
+              
+              // Navigate back to login
+              router.replace('/'); 
+            } catch (error) {
+              console.error("Logout error:", error);
+            }
           },
         },
       ]
@@ -44,34 +43,16 @@ const profile = () => {
   };
 
   return (
-    <LinearGradient
-      colors={['#8ddd9eff', '#11581bff', '#12521dff']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ flex: 1 }}
-    >
-      <View style={{ position: 'absolute', top: 30, left: 0, right: 0, alignItems: 'center', width: '100%', paddingTop: 16, zIndex: 10 }}>
-        <Text className='font-montserrat-bold text-2xl text-white mb-4'>CAIS</Text>
-        <Text className='font-montserrat text-base text-white mb-4'>Profile Settings</Text>
-      </View>
-
-      <View className='bg-white w-full h-[80%] rounded-t-2xl absolute bottom-0 p-5'>
-
-        {/* Wrap image in a View for shadow compatibility */}
-        <View className='w-[160px] h-[160px] left-[33%] rounded-[80px] top-[-50px] absolute z-10 bg-white' style={{
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.2,
-          shadowRadius: 6,
-          elevation: 8,
-        }}>
-          <Image source={clsuLogoGreen} className='w-full h-full rounded-60'/>
-        </View>
-
-        <View className='mt-[30%] flex-col justify-center items-center'>
-          <Text className='font-montserrat-semibold text-2xl text-green-600 p-1'>Liane Jonyl A. Tomas</Text>
-          <Text className='font-montserrat text-2xl text-green-600 p-1'>liane.tomas@clsu2.edu.ph</Text>
-          <Text className='font-montserrat-medium text-2xl text-green-600 p-1'>STUDENT</Text>
+    <View className='flex-1 bg-white'>
+        <View className='h-[250px] bg-green-200 justify-center items-center rounded-br-[150px] shadow-lg overflow-hidden'> 
+            <View className='w-[130px] h-[130px] bg-white rounded-full justify-center items-center shadow-lg mt-10'> 
+                <Image 
+                  // Placeholder image; replace with user profile image if available
+                  source={{ uri: 'https://via.placeholder.com/150' }} 
+                  className='w-[120px] h-[120px] rounded-full'
+                />
+            </View>
+            <Text className='font-montserrat-bold text-xl mt-3 text-green-900'>User Name</Text>
         </View>
 
         <View className='h-[8%] mt-5 border-t border-b border-green-500 flex-row justify-between items-center px-[15px]'>
@@ -83,31 +64,29 @@ const profile = () => {
           <Text className='font-montserrat text-base text-green-600'>September 1, 1939</Text>
         </View>
 
-        <View className='flex-col justify-center mt-10 gap-8'>
+        <View className='flex-col justify-center mt-10 gap-5 px-6'>
         
-        <TouchableOpacity 
-          className='bg-green-200 w-full h-[50] rounded mt-15 justify-center items-center' 
-          onPress={handleEditProfile}>
-          <Text className='font-montserrat-semibold text-base'>Edit Profile</Text>
-        </TouchableOpacity>
-      
-        <TouchableOpacity 
-          className='bg-green-200 w-full h-[50] rounded mt-15 justify-center items-center'
-          onPress={handleChangePassword}>
-          <Text className='font-montserrat-semibold text-base'>Change Password</Text>
-        </TouchableOpacity>
-      
-        <TouchableOpacity 
-          className='bg-green-200 w-full h-[50] rounded mt-15 justify-center items-center'
-          onPress={handleLogout}>
-          <Text className='font-montserrat-semibold text-base'>Logout</Text>
-        </TouchableOpacity>
-
+          <TouchableOpacity 
+            className='bg-green-200 w-full h-[50] rounded justify-center items-center shadow-sm' 
+            onPress={handleEditProfile}>
+            <Text className='font-montserrat-semibold text-base text-green-900'>Edit Profile</Text>
+          </TouchableOpacity>
+        
+          <TouchableOpacity 
+            className='bg-green-200 w-full h-[50] rounded justify-center items-center shadow-sm'
+            onPress={handleChangePassword}>
+            <Text className='font-montserrat-semibold text-base text-green-900'>Change Password</Text>
+          </TouchableOpacity>
+        
+          <TouchableOpacity 
+            className='bg-red-500 w-full h-[50] rounded justify-center items-center shadow-sm mt-5'
+            onPress={handleLogout}>
+            <Text className='font-montserrat-semibold text-base text-white'>Logout</Text>
+          </TouchableOpacity>
+          
         </View>
-
-      </View>
-    </LinearGradient>
+    </View>
   );
 };
 
-export default profile;
+export default Profile;

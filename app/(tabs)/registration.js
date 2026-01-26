@@ -6,6 +6,46 @@ import { Dropdown } from "react-native-element-dropdown";
 import { AntDesign } from "@expo/vector-icons";
 import { Alert } from "react-native";
 
+const fetchSemesters = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/semesters`);
+      console.log('Semesters API Response:', response.data);
+      
+      let semestersArray = [];
+      
+      if (Array.isArray(response.data)) {
+        semestersArray = response.data;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        semestersArray = response.data.data;
+      }
+      
+      // Transform and sort by most recent
+      const formattedSemesters = semestersArray
+        .map(sem => ({
+          label: `${sem.semester_name} ${sem.semester_year}`,
+          value: sem.semester_id,
+          status: sem.semester_status
+        }))
+        .sort((a, b) => b.value - a.value); // Sort by ID descending (most recent first)
+      
+      setSemesters(formattedSemesters);
+      
+      // Auto-select the first active or most recent semester
+      const activeSemester = formattedSemesters.find(s => s.status === 'active');
+      if (activeSemester) {
+        setSemesterId(activeSemester.value);
+      } else if (formattedSemesters.length > 0) {
+        setSemesterId(formattedSemesters[0].value);
+      }
+      
+    } catch (error) {
+      console.error("Error fetching semesters:", error);
+      Alert.alert("Error", "Could not load semesters. Please check your connection.");
+    }
+  };
+
+
+
 const Registration = () => {
   const data = [
     { label: 'Item 1', value: '1' },
