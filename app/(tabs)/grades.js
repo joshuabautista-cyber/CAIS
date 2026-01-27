@@ -1,16 +1,30 @@
-import { Text, View, Image, ActivityIndicator, Alert, ScrollView } from "react-native";
+import { Text, View, Image, ActivityIndicator, Alert, ScrollView, useWindowDimensions, TouchableOpacity } from "react-native";
 import React, { useState, useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import clsuLogoGreen from "../../assets/images/clsuLogoGreen.png"; 
 import { Dropdown } from "react-native-element-dropdown";
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ⚠️ REPLACE WITH YOUR ACTUAL IP ADDRESS
 const API_URL = 'http://192.168.107.151:8000/api'; 
 
 const Grades = () => {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  
+  // Responsive breakpoints
+  const isLandscape = width > height;
+  const isTablet = width >= 768;
+  
+  // Responsive values
+  const logoSize = isLandscape ? (isTablet ? 100 : 90) : 120;
+  const logoTop = isLandscape ? -50 : -60;
+  const cardHeight = isLandscape ? '90%' : '85%';
+  const headerMarginTop = isLandscape ? 60 : 80;
+  const titleSize = isTablet ? 'text-3xl' : 'text-2xl';
+
   // STATE MANAGEMENT
   const [semesters, setSemesters] = useState([]);
   const [gradesData, setGradesData] = useState([]);
@@ -40,7 +54,6 @@ const Grades = () => {
     }
   }, [semesterId, userId]);
 
-  // Get logged-in user ID from AsyncStorage
   const getUserId = async () => {
     try {
       const storedUserId = await AsyncStorage.getItem('user_id');
@@ -48,13 +61,12 @@ const Grades = () => {
         setUserId(storedUserId);
         console.log('Logged in user ID:', storedUserId);
       } else {
-        // Change this fallback to match your database
-        setUserId('1033'); // ← Changed from '1' to '1033'
+        setUserId('1033');
         console.log('No stored user ID, using default: 1033');
       }
     } catch (error) {
       console.error('Error getting user ID:', error);
-      setUserId('1033'); // ← Changed from '1' to '1033'
+      setUserId('1033');
     }
   };
 
@@ -71,18 +83,16 @@ const Grades = () => {
         semestersArray = response.data.data;
       }
       
-      // Transform and sort by most recent
       const formattedSemesters = semestersArray
         .map(sem => ({
           label: `${sem.semester_name} ${sem.semester_year}`,
           value: sem.semester_id,
           status: sem.semester_status
         }))
-        .sort((a, b) => b.value - a.value); // Sort by ID descending (most recent first)
+        .sort((a, b) => b.value - a.value);
       
       setSemesters(formattedSemesters);
       
-      // Auto-select the first active or most recent semester
       const activeSemester = formattedSemesters.find(s => s.status === 'active');
       if (activeSemester) {
         setSemesterId(activeSemester.value);
@@ -135,7 +145,6 @@ const Grades = () => {
     }
   };
 
-  // Calculate GPA and total units
   const calculateSummary = () => {
     let totalUnits = 0;
     let totalGradePoints = 0;
@@ -158,178 +167,207 @@ const Grades = () => {
   const summary = calculateSummary();
 
   return (
-    <View className="flex-1 bg-gray-50">
-      {/* Header Section */}
-      <LinearGradient
-        colors={['#85c593ff', '#90e49bff', '#12521dff']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        className="h-[25%] rounded-b-[30px] justify-center items-center shadow-lg"
+    <LinearGradient
+      colors={['#008000', '#006400', '#004d00']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+      className="flex-1"
+    >
+      <View 
+        className="absolute bottom-0 w-full rounded-t-3xl bg-white"
+        style={{ height: cardHeight }}
       >
-        <Image source={clsuLogoGreen} className="w-24 h-24 mt-8" resizeMode="contain" />
-        <Text className="text-white text-2xl font-bold mt-2">
-          Academic Grades
-        </Text>
-        {userId && (
-          <Text className="text-white/80 text-xs mt-1">
-            Student ID: {userId}
-          </Text>
-        )}
-      </LinearGradient>
-
-      {/* Main Content */}
-      <ScrollView className="flex-1 -mt-10 px-6" showsVerticalScrollIndicator={false}>
-        {/* Dropdown Card */}
-        <View className="bg-white p-4 rounded-xl shadow-md mb-4">
-          <Text className="text-gray-500 text-xs font-bold uppercase mb-2 ml-1">
-            Select Semester
-          </Text>
-          <Dropdown
-            style={{
-              height: 50,
-              borderColor: isFocus ? '#60c047ff' : 'gray',
-              borderWidth: 0.5,
-              borderRadius: 8,
-              paddingHorizontal: 8,
-            }}
-            placeholderStyle={{ fontSize: 16, color: '#999' }}
-            selectedTextStyle={{ fontSize: 16, color: '#333' }}
-            iconStyle={{ width: 20, height: 20 }}
-            data={semesters}
-            maxHeight={300}
-            labelField="label"
-            valueField="value"
-            placeholder={!isFocus ? "- Select Semester -" : "..."}
-            value={semesterId}
-            onFocus={() => setIsFocus(true)}
-            onBlur={() => setIsFocus(false)}
-            onChange={(item) => {
-              setSemesterId(item.value);
-              setIsFocus(false);
-            }}
-            renderLeftIcon={() => (
-              <AntDesign
-                style={{ marginRight: 10 }}
-                color={isFocus ? "#60c047ff" : "gray"}
-                name="calendar"
-                size={20}
-              />
-            )}
+        {/* Logo */}
+        <View 
+          className="absolute z-10 rounded-full bg-white shadow-lg"
+          style={{
+            left: 30,
+            top: logoTop,
+            width: logoSize,
+            height: logoSize,
+          }}
+        >
+          <Image 
+            source={clsuLogoGreen} 
+            style={{ width: logoSize, height: logoSize, borderRadius: logoSize / 2 }}
           />
         </View>
 
-        {/* Loading State */}
-        {loading && (
-          <View className="py-10">
-            <ActivityIndicator size="large" color="#60c047ff" />
-            <Text className="text-center text-gray-500 mt-3">Loading grades...</Text>
-          </View>
-        )}
+        {/* Header */}
+        <View className="items-center justify-center" style={{ marginTop: headerMarginTop }}>
+          <Text className={`text-center font-montserrat-bold ${titleSize} text-[#008000]`}>
+            Academic Grades
+          </Text>
+          <Text className="mt-1 text-center font-montserrat text-sm text-gray-600">
+            View your academic grades
+          </Text>
+        </View>
 
-        {/* Summary Card */}
-        {!loading && semesterId && gradesData.length > 0 && (
-          <LinearGradient
-            colors={['#12521dff', '#60c047ff']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            className="p-5 rounded-xl mb-4 shadow-lg"
-          >
-            <Text className="text-white text-sm uppercase font-bold mb-3">
-              Semester Summary
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          className="flex-1 px-5"
+          style={{ marginTop: isLandscape ? 12 : 16 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        >
+          {/* Dropdown Card */}
+          <View className="mb-4 rounded-xl bg-white p-4 shadow-md shadow-gray-300">
+            <Text className="font-montserrat-medium text-xs text-gray-500 uppercase mb-2">
+              Select Semester
             </Text>
-            <View className="flex-row justify-around">
-              <View className="items-center">
-                <Text className="text-white/80 text-xs">Total Units</Text>
-                <Text className="text-white text-3xl font-bold">{summary.totalUnits}</Text>
-              </View>
-              <View className="h-full w-[1px] bg-white/30" />
-              <View className="items-center">
-                <Text className="text-white/80 text-xs">Courses</Text>
-                <Text className="text-white text-3xl font-bold">{gradesData.length}</Text>
-              </View>
-            </View>
-          </LinearGradient>
-        )}
+            <Dropdown
+              style={{
+                height: 50,
+                borderColor: isFocus ? "#008000" : "#d1d5db",
+                borderWidth: 1,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+              }}
+              placeholderStyle={{ fontSize: 14, color: '#9ca3af', fontFamily: 'Montserrat-Regular' }}
+              selectedTextStyle={{ fontSize: 14, color: '#333', fontFamily: 'Montserrat-Regular' }}
+              iconStyle={{ width: 20, height: 20 }}
+              data={semesters}
+              maxHeight={300}
+              labelField="label"
+              valueField="value"
+              placeholder={!isFocus ? "- Select Semester -" : "..."}
+              value={semesterId}
+              onFocus={() => setIsFocus(true)}
+              onBlur={() => setIsFocus(false)}
+              onChange={(item) => {
+                setSemesterId(item.value);
+                setIsFocus(false);
+              }}
+              renderLeftIcon={() => (
+                <AntDesign
+                  style={{ marginRight: 10 }}
+                  color={isFocus ? "#008000" : "#9ca3af"}
+                  name="calendar"
+                  size={20}
+                />
+              )}
+            />
+          </View>
 
-        {/* Grades Table/List */}
-        {!loading && semesterId && gradesData.length > 0 && (
-          <View className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
-            {/* Table Header */}
-            <View className="bg-[#12521dff] flex-row p-3">
-              <Text className="text-white text-xs font-bold flex-[2]">COURSE</Text>
-              <Text className="text-white text-xs font-bold flex-1 text-center">UNITS</Text>
-              <Text className="text-white text-xs font-bold flex-1 text-center">GRADE</Text>
-              <Text className="text-white text-xs font-bold flex-1 text-center">REMARKS</Text>
+          {/* Loading State */}
+          {loading && (
+            <View className="py-10 items-center">
+              <ActivityIndicator size="large" color="#008000" />
+              <Text className="text-center text-gray-500 mt-3 font-montserrat">Loading grades...</Text>
             </View>
+          )}
 
-            {/* Table Body */}
-            {gradesData.map((item, index) => (
-              <View 
-                key={index} 
-                className={`flex-row p-3 border-b border-gray-100 ${
-                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                }`}
-              >
-                <View className="flex-[2]">
-                  <Text className="text-gray-800 font-semibold text-sm">
-                    {item.subject_code || item.course_code || 'N/A'}
-                  </Text>
-                  <Text className="text-gray-500 text-xs" numberOfLines={1}>
-                    {item.course_name || item.subject_title || 'No course name'}
-                  </Text>
+          {/* Summary Card */}
+          {!loading && semesterId && gradesData.length > 0 && (
+            <LinearGradient
+              colors={['#008000', '#3bbe55']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              className="p-5 rounded-xl mb-4 shadow-lg"
+            >
+              <Text className="font-montserrat-bold text-white text-sm uppercase mb-3">
+                Semester Summary
+              </Text>
+              <View className="flex-row justify-around">
+                <View className="items-center">
+                  <Text className="font-montserrat text-white/80 text-xs">Total Units</Text>
+                  <Text className="font-montserrat-bold text-white text-3xl">{summary.totalUnits}</Text>
                 </View>
-                <Text className="flex-1 text-center text-gray-700 text-sm">
-                  {item.units || '-'}
-                </Text>
-                <Text className={`flex-1 text-center font-bold text-sm ${
-                  item.grades ? 
-                    (parseFloat(item.grades) >= 3.0 ? 'text-red-600' : 'text-[#60c047ff]') 
-                    : 'text-gray-400'
-                }`}>
-                  {item.grades || 'N/A'}
-                </Text>
-                <Text className={`flex-1 text-center text-xs font-semibold ${
-                  item.remarks === 'PASSED' || item.remarks === 'Passed' ? 'text-green-600' : 
-                  item.remarks === 'FAILED' || item.remarks === 'Failed' ? 'text-red-600' : 
-                  'text-gray-400'
-                }`}>
-                  {item.remarks || 'Pending'}
-                </Text>
+                <View className="h-full w-[1px] bg-white/30" />
+                <View className="items-center">
+                  <Text className="font-montserrat text-white/80 text-xs">Courses</Text>
+                  <Text className="font-montserrat-bold text-white text-3xl">{gradesData.length}</Text>
+                </View>
               </View>
-            ))}
-          </View>
-        )}
+            </LinearGradient>
+          )}
 
-        {/* Empty State - No Grades */}
-        {!loading && semesterId && gradesData.length === 0 && (
-          <View className="bg-white rounded-xl shadow-md p-10 items-center justify-center">
-            <AntDesign name="inbox" size={60} color="#d1d5db" />
-            <Text className="text-gray-600 text-center mt-4 text-base font-semibold">
-              No grades available yet
-            </Text>
-            <Text className="text-gray-400 text-center mt-2 text-sm px-6">
-              You haven't enrolled in any courses for this semester, or grades haven't been submitted yet.
-            </Text>
-            <Text className="text-gray-300 text-center mt-3 text-xs">
-              User ID: {userId} | Semester ID: {semesterId}
-            </Text>
-          </View>
-        )}
+          {/* Swipe hint */}
+          {!loading && semesterId && gradesData.length > 0 && (
+            <View className="mb-3 flex-row items-center gap-2 rounded-md bg-[#e8f5e9] p-2">
+              <Ionicons name="swap-horizontal" size={14} color="#008000" />
+              <Text className="font-montserrat flex-1 text-[10px] text-[#008000]">Swipe left or right to see more</Text>
+            </View>
+          )}
 
-        {/* Initial State - No Semester Selected */}
-        {!loading && !semesterId && (
-          <View className="bg-white rounded-xl shadow-md p-10 items-center justify-center mb-6">
-            <AntDesign name="select1" size={60} color="#60c047ff" />
-            <Text className="text-gray-600 text-center mt-4 text-base font-semibold">
-              Select a semester to view grades
-            </Text>
-            <Text className="text-gray-400 text-center mt-2 text-sm">
-              Choose a semester from the dropdown above
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-    </View>
+          {/* Grades Table */}
+          {!loading && semesterId && gradesData.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+              <View className="rounded-xl overflow-hidden shadow-md shadow-gray-300 min-w-[500px] mb-6">
+                {/* Table Header */}
+                <View className="bg-[#3bbe55] flex-row">
+                  <Text className="font-montserrat-bold text-white text-xs flex-[2] p-3 text-center">COURSE</Text>
+                  <Text className="font-montserrat-bold text-white text-xs flex-1 p-3 text-center">UNITS</Text>
+                  <Text className="font-montserrat-bold text-white text-xs flex-1 p-3 text-center">GRADE</Text>
+                  <Text className="font-montserrat-bold text-white text-xs flex-1 p-3 text-center">REMARKS</Text>
+                </View>
+
+                {/* Table Body */}
+                {gradesData.map((item, index) => (
+                  <View 
+                    key={index} 
+                    className={`flex-row border-b border-gray-100 ${
+                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                    }`}
+                  >
+                    <View className="flex-[2] p-3">
+                      <Text className="font-montserrat-medium text-gray-800 text-sm">
+                        {item.subject_code || item.course_code || 'N/A'}
+                      </Text>
+                      <Text className="font-montserrat text-gray-500 text-xs" numberOfLines={1}>
+                        {item.course_name || item.subject_title || 'No course name'}
+                      </Text>
+                    </View>
+                    <Text className="font-montserrat flex-1 text-center text-gray-700 text-sm p-3">
+                      {item.units || '-'}
+                    </Text>
+                    <Text className={`font-montserrat-bold flex-1 text-center text-sm p-3 ${
+                      item.grades ? 
+                        (parseFloat(item.grades) >= 3.0 ? 'text-red-600' : 'text-[#008000]') 
+                        : 'text-gray-400'
+                    }`}>
+                      {item.grades || 'N/A'}
+                    </Text>
+                    <Text className={`font-montserrat-medium flex-1 text-center text-xs p-3 ${
+                      item.remarks === 'PASSED' || item.remarks === 'Passed' ? 'text-green-600' : 
+                      item.remarks === 'FAILED' || item.remarks === 'Failed' ? 'text-red-600' : 
+                      'text-gray-400'
+                    }`}>
+                      {item.remarks || 'Pending'}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          )}
+
+          {/* Empty State - No Grades */}
+          {!loading && semesterId && gradesData.length === 0 && (
+            <View className="bg-white rounded-xl shadow-md shadow-gray-300 p-10 items-center justify-center">
+              <Ionicons name="document-outline" size={60} color="#d1d5db" />
+              <Text className="font-montserrat-medium text-gray-600 text-center mt-4 text-base">
+                No grades available yet
+              </Text>
+              <Text className="font-montserrat text-gray-400 text-center mt-2 text-sm px-6">
+                You haven't enrolled in any courses for this semester, or grades haven't been submitted yet.
+              </Text>
+            </View>
+          )}
+
+          {/* Initial State - No Semester Selected */}
+          {!loading && !semesterId && (
+            <View className="bg-white rounded-xl shadow-md shadow-gray-300 p-10 items-center justify-center">
+              <Ionicons name="calendar-outline" size={60} color="#008000" />
+              <Text className="font-montserrat-medium text-gray-600 text-center mt-4 text-base">
+                Select a semester to view grades
+              </Text>
+              <Text className="font-montserrat text-gray-400 text-center mt-2 text-sm">
+                Choose a semester from the dropdown above
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </LinearGradient>
   );
 };
 

@@ -1,15 +1,41 @@
-import { Text, View, Image, TouchableOpacity } from "react-native";
-import React, { useState } from "react";
+import { Text, View, Image, TouchableOpacity, useWindowDimensions, ScrollView } from "react-native";
+import React, { useState, useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import clsuLogoGreen from "../../assets/images/clsuLogoGreen.png";
 import { Dropdown } from "react-native-element-dropdown";
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { Alert } from "react-native";
+import axios from 'axios';
 
-const fetchSemesters = async () => {
+const API_URL = 'http://192.168.107.151:8000/api';
+
+const Registration = () => {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  
+  // Responsive breakpoints
+  const isLandscape = width > height;
+  const isTablet = width >= 768;
+  
+  // Responsive values
+  const logoSize = isLandscape ? (isTablet ? 100 : 90) : 120;
+  const logoTop = isLandscape ? -50 : -60;
+  const cardHeight = isLandscape ? '90%' : '85%';
+  const headerMarginTop = isLandscape ? 60 : 80;
+  const titleSize = isTablet ? 'text-3xl' : 'text-2xl';
+
+  const [semesters, setSemesters] = useState([]);
+  const [value, setValue] = useState(null);
+  const [isFocus, setIsFocus] = useState(false);
+
+  useEffect(() => {
+    fetchSemesters();
+  }, []);
+
+  const fetchSemesters = async () => {
     try {
       const response = await axios.get(`${API_URL}/semesters`);
-      console.log('Semesters API Response:', response.data);
       
       let semestersArray = [];
       
@@ -19,129 +45,121 @@ const fetchSemesters = async () => {
         semestersArray = response.data.data;
       }
       
-      // Transform and sort by most recent
       const formattedSemesters = semestersArray
         .map(sem => ({
           label: `${sem.semester_name} ${sem.semester_year}`,
           value: sem.semester_id,
           status: sem.semester_status
         }))
-        .sort((a, b) => b.value - a.value); // Sort by ID descending (most recent first)
+        .sort((a, b) => b.value - a.value);
       
       setSemesters(formattedSemesters);
       
-      // Auto-select the first active or most recent semester
       const activeSemester = formattedSemesters.find(s => s.status === 'active');
       if (activeSemester) {
-        setSemesterId(activeSemester.value);
+        setValue(activeSemester.value);
       } else if (formattedSemesters.length > 0) {
-        setSemesterId(formattedSemesters[0].value);
+        setValue(formattedSemesters[0].value);
       }
       
     } catch (error) {
       console.error("Error fetching semesters:", error);
-      Alert.alert("Error", "Could not load semesters. Please check your connection.");
     }
-  };
-
-
-
-const Registration = () => {
-  const data = [
-    { label: 'Item 1', value: '1' },
-    { label: 'Item 2', value: '2' },
-    { label: 'Item 3', value: '3' },
-    { label: 'Item 4', value: '4' },
-    { label: 'Item 5', value: '5' },
-    { label: 'Item 6', value: '6' },
-    { label: 'Item 7', value: '7' },
-    { label: 'Item 8', value: '8' },
-  ];
-
-  const [value, setValue] = useState(null);
-  const [isFocus, setIsFocus] = useState(false);
-
-  const renderLabel = () => {
-    if (value || isFocus) {
-      return (
-        <Text
-          className={`font-montserrat-medium absolute left-[22px] top-2 z-[999] bg-white px-2 text-sm ${
-            isFocus ? "text-black" : "text-gray-700"
-          }`}
-        >
-          Select Semester
-        </Text>
-      );
-    }
-    return null;
   };
 
   return (
     <LinearGradient
-      colors={["#8ddd9eff", "#11581bff", "#12521dff"]}
+      colors={['#008000', '#006400', '#004d00']}
       start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+      end={{ x: 0, y: 1 }}
       className="flex-1"
     >
-      <View className="absolute bottom-0 h-[85%] w-full rounded-t-3xl bg-white p-5">
+      <View 
+        className="absolute bottom-0 w-full rounded-t-3xl bg-white"
+        style={{ height: cardHeight }}
+      >
         {/* Logo */}
-        <View className="absolute -top-16 left-8 z-10 h-[120px] w-[120px] rounded-full bg-white shadow-lg shadow-black">
-          <Image
-            source={clsuLogoGreen}
-            className="h-[120px] w-[120px] rounded-full"
+        <View 
+          className="absolute z-10 rounded-full bg-white shadow-lg"
+          style={{
+            left: 30,
+            top: logoTop,
+            width: logoSize,
+            height: logoSize,
+          }}
+        >
+          <Image 
+            source={clsuLogoGreen} 
+            style={{ width: logoSize, height: logoSize, borderRadius: logoSize / 2 }}
           />
         </View>
 
-        <View className="mt-8 items-center justify-center">
-          <Text className="font-montserrat-bold mb-5 text-center text-xl text-black">
-            CAIS {"\n"}Registration Form
+        {/* Header */}
+        <View className="items-center justify-center" style={{ marginTop: headerMarginTop }}>
+          <Text className={`text-center font-montserrat-bold ${titleSize} text-[#008000]`}>
+            Registration Form
+          </Text>
+          <Text className="mt-1 text-center font-montserrat text-sm text-gray-600">
+            Complete your registration
           </Text>
         </View>
 
-        <View className="bg-white p-4">
-          {renderLabel()}
-          <Dropdown
-            style={{
-              height: 50,
-              borderColor: isFocus ? "#7cc364ff" : "#7cc364ff",
-              borderWidth: 0.5,
-              borderRadius: 8,
-              paddingHorizontal: 8,
-              fontFamily: 'Montserrat-Regular',
-            }}
-            placeholderStyle={{ fontSize: 16, fontFamily: 'Montserrat-Regular' }}
-            selectedTextStyle={{ fontSize: 16, fontFamily: 'Montserrat-Regular' }}
-            iconStyle={{ width: 20, height: 20 }}
-            data={data}
-            maxHeight={300}
-            labelField="label"
-            valueField="value"
-            placeholder={!isFocus ? "-Select Semester-" : "..."}
-            onFocus={() => setIsFocus(true)}
-            onBlur={() => setIsFocus(false)}
-            onChange={(item) => {
-              setValue(item.value);
-              setIsFocus(false);
-            }}
-            renderLeftIcon={() => (
-              <AntDesign
-                style={{ marginRight: 10 }}
-                color={isFocus ? "#7cc364ff" : "#7cc364ff"}
-                name="book"
-                size={20}
-              />
-            )}
-          />
-        </View>
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          className="flex-1 px-5"
+          style={{ marginTop: isLandscape ? 12 : 16 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        >
+          {/* Dropdown Card */}
+          <View className="mb-4 rounded-xl bg-white p-4 shadow-md shadow-gray-300">
+            <Text className="font-montserrat-medium text-xs text-gray-500 uppercase mb-2">
+              Select Semester
+            </Text>
+            <Dropdown
+              style={{
+                height: 50,
+                borderColor: isFocus ? "#008000" : "#d1d5db",
+                borderWidth: 1,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+              }}
+              placeholderStyle={{ fontSize: 14, color: '#9ca3af', fontFamily: 'Montserrat-Regular' }}
+              selectedTextStyle={{ fontSize: 14, color: '#333', fontFamily: 'Montserrat-Regular' }}
+              iconStyle={{ width: 20, height: 20 }}
+              data={semesters}
+              maxHeight={300}
+              labelField="label"
+              valueField="value"
+              placeholder={!isFocus ? "-Select Semester-" : "..."}
+              value={value}
+              onFocus={() => setIsFocus(true)}
+              onBlur={() => setIsFocus(false)}
+              onChange={(item) => {
+                setValue(item.value);
+                setIsFocus(false);
+              }}
+              renderLeftIcon={() => (
+                <AntDesign
+                  style={{ marginRight: 10 }}
+                  color={isFocus ? "#008000" : "#9ca3af"}
+                  name="book"
+                  size={20}
+                />
+              )}
+            />
+          </View>
 
-        <View className="mt-6 items-center justify-center">
+          {/* Download Button */}
           <TouchableOpacity
-            className="h-10 w-40 items-center justify-center rounded bg-[#60c047ff]"
-            onPress={() => Alert.alert("Download pressed")}
+            className="h-12 items-center justify-center rounded-xl bg-[#008000]"
+            onPress={() => Alert.alert("Download", "Download feature coming soon")}
           >
-            <Text className="font-montserrat-bold text-white">Download</Text>
+            <View className="flex-row items-center">
+              <Ionicons name="download-outline" size={18} color="#fff" />
+              <Text className="font-montserrat-bold text-white ml-2">Download</Text>
+            </View>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
     </LinearGradient>
   );

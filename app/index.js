@@ -2,18 +2,22 @@ import React, { useState } from "react";
 import {
   Image,
   View,
-  // Text,
   TouchableOpacity,
   Alert,
   TextInput,
   Pressable,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import { Text } from 'react-native';
-import clsu from "../assets/clsu.png";
+import { Ionicons } from '@expo/vector-icons';
+import clsu from "../assets/images/clsuLogoGreen.png";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'http://192.168.107.151:8000/api';
 
@@ -22,8 +26,16 @@ export default function App() {
   const [email, setEmail] = useState('student@test.com');
   const [password, setPassword] = useState('password');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
     setLoading(true);
     try {
       console.log('Logging in...');
@@ -33,7 +45,11 @@ export default function App() {
       });
 
       if (response.status === 200) {
-        // Login successful - navigate to home
+        // Store user data if returned
+        if (response.data.user) {
+          await AsyncStorage.setItem('user_id', String(response.data.user.user_id || response.data.user.id));
+          await AsyncStorage.setItem('token', response.data.token || '');
+        }
         router.push("/home");
       }
     } catch (error) {
@@ -46,82 +62,171 @@ export default function App() {
 
   return (
     <LinearGradient
-      colors={["#85c593ff", "#90e49bff", "#12521dff"]}
+      colors={["#FFD700", "#008000", "#004d00"]}
       start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+      end={{ x: 0, y: 1 }}
       className="flex-1"
     >
-      <View className="flex-1 flex-col items-center justify-center">
-        {/* Top logo and title */}
-        <View className="mt-[8%] mb-5 w-[75%] flex-row items-center rounded-2xl bg-white px-4 py-4 shadow-lg">
-          <Image source={clsu} className="h-[150px] w-[150px]" />
-          <Text className="ml-1 text-xs text-black font-bold">
-            Comprehensive{"\n"}Academic{"\n"}Information System
-          </Text>
-        </View>
-
-        {/* Login card */}
-        <View className="h-[70%] w-[75%] rounded-2xl bg-white shadow-lg">
-          <Text className="mt-8 ml-3 text-left text-3xl font-bold text-black">
-            Welcome Back
-          </Text>
-          <Text className="mt-1 ml-3 text-m text-black">
-            Sign in to Continue to the Portal
-          </Text>
-
-          <View className="mt-12">
-            <Text className="ml-3 pt-2 text-s text-black">Email</Text>
-            <TextInput
-              className="mx-2 my-2 h-10 rounded border border-black px-2 text-black"
-              placeholder="Email"
-              placeholderTextColor="#666"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!loading}
-            />
-
-            <Text className="ml-3 pt-2 text-s text-black">Password</Text>
-            <TextInput
-              className="mx-2 my-2 h-10 rounded border border-black px-2 text-black"
-              placeholder="Password"
-              placeholderTextColor="#666"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={true}
-              editable={!loading}
-            />
-
-            <TouchableOpacity
-              className="mx-2 mt-6 h-10 items-center justify-center rounded bg-[#60c047ff]"
-              onPress={handleLogin}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text className="font-bold text-white">Login</Text>
-              )}
-            </TouchableOpacity>
-
-            <Pressable onPress={() => Alert.alert("Forgot Password pressed")}>
-              <Text className="mt-2 text-center text-[10px] text-blue-600">
-                Forgot Password?
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+      >
+        <ScrollView 
+          contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View className="flex-1 items-center justify-center px-6 py-7">
+            {/* Logo Section */}
+            <View className="items-center mb-6">
+              <View className="h-[200px] w-[200px] items-center justify-center mb-4">
+                <Image 
+                  source={clsu} 
+                  className="h-full w-full" 
+                  resizeMode="contain"
+                />
+              </View>
+              <Text className="text-center font-montserrat-bold text-2xl text-[#FFD700] mb-1 drop-shadow-lg">
+                CLSU Portal
               </Text>
-            </Pressable>
-
-            <TouchableOpacity
-              className="mt-12 h-[60px] w-[40%] self-center items-center justify-center rounded bg-[#60c047ff]"
-              onPress={() => router.push("/subjects-schedule")}
-            >
-              <Text className="text-center font-bold text-white">
-                Subjects Schedule {"\n"} (Real Time)
+              <Text className="text-center font-montserrat-medium text-sm text-white/95">
+                Comprehensive Academic Information System
               </Text>
-            </TouchableOpacity>
+            </View>
+
+            {/* Login Card */}
+            <View className="w-full rounded-3xl bg-white/85 p-6 shadow-2xl shadow-black/30">
+              <View className="mb-6">
+                <Text className="font-montserrat-bold text-2xl text-[#008000]">
+                  Welcome Back
+                </Text>
+                <Text className="mt-1 font-montserrat text-sm text-gray-600">
+                  Sign in to continue to the portal
+                </Text>
+              </View>
+
+              {/* Email Input */}
+              <View className="mb-4">
+                <Text className="mb-2 font-montserrat-medium text-sm text-gray-700">
+                  Email Address
+                </Text>
+                <View 
+                  className={`flex-row items-center rounded-xl border-2 bg-gray-50 px-4 ${
+                    emailFocused ? 'border-[#008000]' : 'border-gray-200'
+                  }`}
+                >
+                  <Ionicons 
+                    name="mail-outline" 
+                    size={20} 
+                    color={emailFocused ? "#008000" : "#9ca3af"} 
+                  />
+                  <TextInput
+                    className="ml-3 flex-1 py-3.5 font-montserrat text-sm text-black"
+                    placeholder="Enter your email"
+                    placeholderTextColor="#9ca3af"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    editable={!loading}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                  />
+                </View>
+              </View>
+
+              {/* Password Input */}
+              <View className="mb-2">
+                <Text className="mb-2 font-montserrat-medium text-sm text-gray-700">
+                  Password
+                </Text>
+                <View 
+                  className={`flex-row items-center rounded-xl border-2 bg-gray-50 px-4 ${
+                    passwordFocused ? 'border-[#008000]' : 'border-gray-200'
+                  }`}
+                >
+                  <Ionicons 
+                    name="lock-closed-outline" 
+                    size={20} 
+                    color={passwordFocused ? "#008000" : "#9ca3af"} 
+                  />
+                  <TextInput
+                    className="ml-3 flex-1 py-3.5 font-montserrat text-sm text-black"
+                    placeholder="Enter your password"
+                    placeholderTextColor="#9ca3af"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    editable={!loading}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                  />
+                  <TouchableOpacity 
+                    onPress={() => setShowPassword(!showPassword)}
+                    className="ml-2"
+                  >
+                    <Ionicons 
+                      name={showPassword ? "eye-outline" : "eye-off-outline"} 
+                      size={20} 
+                      color="#9ca3af" 
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Forgot Password */}
+              <Pressable onPress={() => Alert.alert("Forgot Password", "Password reset feature coming soon")}>
+                <Text className="mb-6 text-right font-montserrat-medium text-xs text-[#008000]">
+                  Forgot Password?
+                </Text>
+              </Pressable>
+
+              {/* Login Button */}
+              <TouchableOpacity
+                className={`mb-4 h-14 items-center justify-center rounded-xl shadow-lg shadow-[#008000]/30 ${
+                  loading ? 'bg-gray-400' : 'bg-[#008000]'
+                }`}
+                onPress={handleLogin}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <View className="flex-row items-center">
+                    <Text className="font-montserrat-bold text-base text-white">
+                      Sign In
+                    </Text>
+                    <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View className="my-4 flex-row items-center">
+                <View className="h-[1px] flex-1 bg-gray-300" />
+                <Text className="mx-3 font-montserrat text-xs text-gray-500">OR</Text>
+                <View className="h-[1px] flex-1 bg-gray-300" />
+              </View>
+
+              {/* Schedule Button */}
+              <TouchableOpacity
+                className="h-14 items-center justify-center rounded-xl border-2 border-[#008000] bg-white"
+                onPress={() => router.push("/subjects-schedule")}
+                activeOpacity={0.8}
+              >
+                <View className="flex-row items-center">
+                  <Ionicons name="calendar-outline" size={18} color="#008000" />
+                  <Text className="ml-2 font-montserrat-bold text-sm text-[#008000]">
+                    View Subjects Schedule
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
           </View>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }
