@@ -3,6 +3,7 @@ import { Text } from 'react-native';
 import React, { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import clsuLogoGreen from '../../assets/images/clsuLogoGreen.png';
+import clsuLogoGreen from '../../assets/images/clsu.png';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -39,20 +40,35 @@ const Modules = () => {
       icon: 'school-outline',
       iconType: 'ionicons',
       color: '#008000',
-      onPress: () => router.push('/(modules)/enrollment'),
+      hasDropdown: true,
+      subModules: [
+        {
+          title: 'Regular',
+          icon: 'calendar-outline',
+          onPress: () => router.push('/(modules)/regular')
+        },
+        {
+          title: 'Online PRTF',
+          icon: 'document-text-outline',
+          onPress: () => router.push('/(modules)/prtf')
+        },
+        {
+          title: 'Adding and Changing',
+          icon: 'add-circle-outline',
+          onPress: () => router.push('/(modules)/adding')
+        },
+        {
+          title: 'Dropping',
+          icon: 'remove-circle-outline',
+          onPress: () => router.push('/(modules)/dropping')
+        }
+      ]
     },
     {
       title: 'Application for Graduation',
       icon: 'school',
       iconType: 'material',
-      onPress: () => router.push('/(modules)/regular'),
-      color: '#008000'
-    },
-    {
-      title: 'Online PRTF',
-      icon: 'document-text-outline',
-      iconType: 'ionicons',
-      onPress: () => router.push('/(modules)/prtf'),
+      onPress: () => router.push('/(modules)/graduation'),
       color: '#008000'
     },
     {
@@ -70,6 +86,10 @@ const Modules = () => {
       color: '#008000'
     }
   ];
+
+  const toggleDropdown = (index) => {
+    setExpandedModule(expandedModule === index ? null : index);
+  };
 
   return (
     <LinearGradient
@@ -128,44 +148,66 @@ const Modules = () => {
                 width: gridColumns > 1 ? '48%' : '100%',
               }}
             >
-              {/* Main Module */}
-              <TouchableOpacity
-                className="overflow-hidden rounded-2xl bg-white shadow-md shadow-gray-400"
-                onPress={module.onPress}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={['#008000', '#006400']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  className="flex-row items-center p-4"
+                {/* Main Module */}
+                <TouchableOpacity
+                  className="overflow-hidden rounded-2xl bg-white shadow-md shadow-gray-400"
+                  onPress={() => module.hasDropdown ? toggleDropdown(index) : module.onPress()}
+                  activeOpacity={0.7}
                 >
-                  {/* Icon Container */}
-                  <View className="mr-4 h-14 w-14 items-center justify-center rounded-full bg-white/20">
-                    {module.iconType === 'ionicons' ? (
-                      <Ionicons name={module.icon} size={28} color="#fff" />
-                    ) : (
-                      <MaterialCommunityIcons name={module.icon} size={28} color="#fff" />
-                    )}
-                  </View>
+                  <LinearGradient
+                    colors={['#008000', '#006400']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    className="flex-row items-center p-4"
+                  >
+                    {/* Icon Container */}
+                    <View className="mr-4 h-14 w-14 items-center justify-center rounded-full bg-white/20">
+                      {module.iconType === 'ionicons' ? (
+                        <Ionicons name={module.icon} size={28} color="#fff" />
+                      ) : (
+                        <MaterialCommunityIcons name={module.icon} size={28} color="#fff" />
+                      )}
+                    </View>
 
-                  {/* Text Content */}
-                  <View className="flex-1">
-                    <Text className="font-montserrat-bold text-base text-white">
-                      {module.title}
-                    </Text>
-                  </View>
+                    {/* Text Content */}
+                    <View className="flex-1">
+                      <Text className="font-montserrat-bold text-base text-white">
+                        {module.title}
+                      </Text>
+                    </View>
 
-                  {/* Arrow Icon */}
-                  <Ionicons 
-                    name="chevron-forward" 
-                    size={24} 
-                    color="#fff" 
-                  />
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          ))}
+                    {/* Arrow Icon */}
+                    <Ionicons 
+                      name={module.hasDropdown ? (expandedModule === index ? "chevron-up" : "chevron-down") : "chevron-forward"} 
+                      size={24} 
+                      color="#fff" 
+                    />
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                {/* Dropdown Sub-modules */}
+                {module.hasDropdown && expandedModule === index && (
+                  <View className="mt-2 ml-4 overflow-hidden rounded-xl bg-gray-50">
+                    {module.subModules.map((subModule, subIndex) => (
+                      <TouchableOpacity
+                        key={subIndex}
+                        className="flex-row items-center border-b border-gray-200 p-4"
+                        onPress={subModule.onPress}
+                        activeOpacity={0.7}
+                      >
+                        <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-[#FFD700]/20">
+                          <Ionicons name={subModule.icon} size={20} color="#008000" />
+                        </View>
+                        <Text className="flex-1 font-montserrat-medium text-sm text-[#008000]">
+                          {subModule.title}
+                        </Text>
+                        <Ionicons name="chevron-forward" size={18} color="#008000" />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            ))}
         </ScrollView>
       </View>
     </LinearGradient>
