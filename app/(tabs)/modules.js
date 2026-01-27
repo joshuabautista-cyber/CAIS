@@ -45,7 +45,7 @@ const Modules = () => {
       title: 'Application for Graduation',
       icon: 'school',
       iconType: 'material',
-      onPress: () => router.push('/(modules)/graduation'),
+      onPress: () => router.push('/(modules)/regular'),
       color: '#008000'
     },
     {
