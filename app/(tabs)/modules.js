@@ -2,7 +2,7 @@ import { View, Image, TouchableOpacity, ScrollView, useWindowDimensions } from '
 import { Text } from 'react-native';
 import React, { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import clsuLogoGreen from '../../assets/images/clsu.png';
+import clsuLogoGreen from '../../assets/images/clsuLogoGreen.png';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
