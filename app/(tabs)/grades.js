@@ -17,13 +17,17 @@ const Grades = () => {
   // Responsive breakpoints
   const isLandscape = width > height;
   const isTablet = width >= 768;
+  const isLargeTablet = width >= 1024;
   
   // Responsive values
-  const logoSize = isLandscape ? (isTablet ? 100 : 90) : 120;
-  const logoTop = isLandscape ? -50 : -60;
-  const cardHeight = isLandscape ? '90%' : '85%';
-  const headerMarginTop = isLandscape ? 60 : 80;
+  const logoSize = isLandscape ? (isTablet ? 100 : 80) : 120;
+  const logoTop = isLandscape ? -40 : -60;
+  const cardHeight = isLandscape ? '92%' : '85%';
+  const headerMarginTop = isLandscape ? 50 : 80;
   const titleSize = isTablet ? 'text-3xl' : 'text-2xl';
+  const contentMaxWidth = isLargeTablet ? 900 : (isTablet ? 700 : '100%');
+  const horizontalPadding = isTablet ? 32 : 20;
+  const tableMinWidth = isLandscape ? 600 : 500;
 
   // STATE MANAGEMENT
   const [semesters, setSemesters] = useState([]);
@@ -205,16 +209,28 @@ const Grades = () => {
 
         <ScrollView 
           showsVerticalScrollIndicator={false}
-          className="flex-1 px-5"
-          style={{ marginTop: isLandscape ? 12 : 16 }}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+          className="flex-1"
+          style={{ marginTop: isLandscape ? 8 : 16, paddingHorizontal: horizontalPadding }}
+          contentContainerStyle={{ 
+            paddingBottom: insets.bottom + 20,
+            maxWidth: contentMaxWidth,
+            alignSelf: 'center',
+            width: '100%'
+          }}
         >
           {/* Dropdown Card */}
-          <View className="mb-4 rounded-xl bg-white p-4 shadow-md shadow-gray-300">
-            <Text className="font-montserrat-medium text-xs text-gray-500 uppercase mb-2">
+          <View 
+            className="mb-4 rounded-xl bg-white p-4 shadow-md shadow-gray-300"
+            style={isLandscape ? { flexDirection: 'row', alignItems: 'center' } : {}}
+          >
+            <Text 
+              className="font-montserrat-medium text-xs text-gray-500 uppercase mb-2"
+              style={isLandscape ? { marginBottom: 0, marginRight: 12, minWidth: 100 } : {}}
+            >
               Select Semester
             </Text>
-            <Dropdown
+            <View style={isLandscape ? { flex: 1 } : {}}>
+              <Dropdown
               style={{
                 height: 50,
                 borderColor: isFocus ? "#008000" : "#d1d5db",
@@ -246,6 +262,7 @@ const Grades = () => {
                 />
               )}
             />
+            </View>
           </View>
 
           {/* Loading State */}
@@ -262,27 +279,33 @@ const Grades = () => {
               colors={['#008000', '#3bbe55']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              className="p-5 rounded-xl mb-4 shadow-lg"
+              className="rounded-xl mb-4 shadow-lg"
+              style={{ padding: isLandscape ? 16 : 20 }}
             >
-              <Text className="font-montserrat-bold text-white text-sm uppercase mb-3">
-                Semester Summary
-              </Text>
-              <View className="flex-row justify-around">
-                <View className="items-center">
-                  <Text className="font-montserrat text-white/80 text-xs">Total Units</Text>
-                  <Text className="font-montserrat-bold text-white text-3xl">{summary.totalUnits}</Text>
-                </View>
-                <View className="h-full w-[1px] bg-white/30" />
-                <View className="items-center">
-                  <Text className="font-montserrat text-white/80 text-xs">Courses</Text>
-                  <Text className="font-montserrat-bold text-white text-3xl">{gradesData.length}</Text>
+              <View style={isLandscape ? { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' } : {}}>
+                <Text 
+                  className="font-montserrat-bold text-white text-sm uppercase"
+                  style={isLandscape ? { marginBottom: 0 } : { marginBottom: 12 }}
+                >
+                  Semester Summary
+                </Text>
+                <View className="flex-row justify-around" style={isLandscape ? { flex: 1, marginLeft: 24 } : {}}>
+                  <View className="items-center">
+                    <Text className="font-montserrat text-white/80 text-xs">Total Units</Text>
+                    <Text className="font-montserrat-bold text-white text-2xl">{summary.totalUnits}</Text>
+                  </View>
+                  <View className="h-full w-[1px] bg-white/30 mx-4" />
+                  <View className="items-center">
+                    <Text className="font-montserrat text-white/80 text-xs">Courses</Text>
+                    <Text className="font-montserrat-bold text-white text-2xl">{gradesData.length}</Text>
+                  </View>
                 </View>
               </View>
             </LinearGradient>
           )}
 
-          {/* Swipe hint */}
-          {!loading && semesterId && gradesData.length > 0 && (
+          {/* Swipe hint - only show on small screens */}
+          {!loading && semesterId && gradesData.length > 0 && !isTablet && (
             <View className="mb-3 flex-row items-center gap-2 rounded-md bg-[#e8f5e9] p-2">
               <Ionicons name="swap-horizontal" size={14} color="#008000" />
               <Text className="font-montserrat flex-1 text-[10px] text-[#008000]">Swipe left or right to see more</Text>
@@ -291,14 +314,25 @@ const Grades = () => {
 
           {/* Grades Table */}
           {!loading && semesterId && gradesData.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-              <View className="rounded-xl overflow-hidden shadow-md shadow-gray-300 min-w-[500px] mb-6">
+            <ScrollView horizontal={!isTablet} showsHorizontalScrollIndicator={!isTablet}>
+              <View 
+                className="rounded-xl overflow-hidden shadow-md shadow-gray-300 mb-6"
+                style={{ minWidth: isTablet ? '100%' : tableMinWidth, width: isTablet ? '100%' : tableMinWidth }}
+              >
                 {/* Table Header */}
                 <View className="bg-[#3bbe55] flex-row">
-                  <Text className="font-montserrat-bold text-white text-xs flex-[2] p-3 text-center">COURSE</Text>
-                  <Text className="font-montserrat-bold text-white text-xs flex-1 p-3 text-center">UNITS</Text>
-                  <Text className="font-montserrat-bold text-white text-xs flex-1 p-3 text-center">GRADE</Text>
-                  <Text className="font-montserrat-bold text-white text-xs flex-1 p-3 text-center">REMARKS</Text>
+                  <View style={{ width: '40%', padding: 12 }}>
+                    <Text className="font-montserrat-bold text-white text-xs text-center">COURSE</Text>
+                  </View>
+                  <View style={{ width: '20%', padding: 12 }}>
+                    <Text className="font-montserrat-bold text-white text-xs text-center">UNITS</Text>
+                  </View>
+                  <View style={{ width: '20%', padding: 12 }}>
+                    <Text className="font-montserrat-bold text-white text-xs text-center">GRADE</Text>
+                  </View>
+                  <View style={{ width: '20%', padding: 12 }}>
+                    <Text className="font-montserrat-bold text-white text-xs text-center">REMARKS</Text>
+                  </View>
                 </View>
 
                 {/* Table Body */}
@@ -309,7 +343,7 @@ const Grades = () => {
                       index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                     }`}
                   >
-                    <View className="flex-[2] p-3">
+                    <View style={{ width: '40%', padding: 12 }}>
                       <Text className="font-montserrat-medium text-gray-800 text-sm">
                         {item.subject_code || item.course_code || 'N/A'}
                       </Text>
@@ -317,23 +351,29 @@ const Grades = () => {
                         {item.course_name || item.subject_title || 'No course name'}
                       </Text>
                     </View>
-                    <Text className="font-montserrat flex-1 text-center text-gray-700 text-sm p-3">
-                      {item.units || '-'}
-                    </Text>
-                    <Text className={`font-montserrat-bold flex-1 text-center text-sm p-3 ${
-                      item.grades ? 
-                        (parseFloat(item.grades) >= 3.0 ? 'text-red-600' : 'text-[#008000]') 
-                        : 'text-gray-400'
-                    }`}>
-                      {item.grades || 'N/A'}
-                    </Text>
-                    <Text className={`font-montserrat-medium flex-1 text-center text-xs p-3 ${
-                      item.remarks === 'PASSED' || item.remarks === 'Passed' ? 'text-green-600' : 
-                      item.remarks === 'FAILED' || item.remarks === 'Failed' ? 'text-red-600' : 
-                      'text-gray-400'
-                    }`}>
-                      {item.remarks || 'Pending'}
-                    </Text>
+                    <View style={{ width: '20%', padding: 12, justifyContent: 'center' }}>
+                      <Text className="font-montserrat text-center text-gray-700 text-sm">
+                        {item.units || '-'}
+                      </Text>
+                    </View>
+                    <View style={{ width: '20%', padding: 12, justifyContent: 'center' }}>
+                      <Text className={`font-montserrat-bold text-center text-sm ${
+                        item.grades ? 
+                          (parseFloat(item.grades) >= 3.0 ? 'text-red-600' : 'text-[#008000]') 
+                          : 'text-gray-400'
+                      }`}>
+                        {item.grades || 'N/A'}
+                      </Text>
+                    </View>
+                    <View style={{ width: '20%', padding: 12, justifyContent: 'center' }}>
+                      <Text className={`font-montserrat-medium text-center text-xs ${
+                        item.remarks === 'PASSED' || item.remarks === 'Passed' ? 'text-green-600' : 
+                        item.remarks === 'FAILED' || item.remarks === 'Failed' ? 'text-red-600' : 
+                        'text-gray-400'
+                      }`}>
+                        {item.remarks || 'Pending'}
+                      </Text>
+                    </View>
                   </View>
                 ))}
               </View>
