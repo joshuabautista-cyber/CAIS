@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import clsu from "../assets/images/clsuLogoGreen.png";
+import clsu from "../assets/images/clsulogo.png";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import axios from 'axios';
