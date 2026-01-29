@@ -1,14 +1,28 @@
- import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import clsuLogoGreen from '../../assets/images/clsuLogoGreen.png';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'http://192.168.107.151:8000/api';
 
-const enrollment = () => {
+// University Colors
+const COLORS = {
+  green: '#008000',
+  gold: '#FFD700',
+  white: '#FFFFFF',
+  lightGold: '#FFF8DC',
+  darkGreen: '#006400',
+  lightGreen: '#E8F5E9',
+};
+
+const Enrollment = () => {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  
   const [selectedSection, setSelectedSection] = useState("BSIT_4-2");
   const [userId, setUserId] = useState(null);
   const [semesterId, setSemesterId] = useState(null);
@@ -17,6 +31,21 @@ const enrollment = () => {
   const [excludedSubjects, setExcludedSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState({});
+
+  // Responsive breakpoints
+  const isLandscape = width > height;
+  const isTablet = width >= 768;
+  const isSmallPhone = width < 375;
+
+  // Responsive values
+  const logoSize = isLandscape ? (isTablet ? 100 : 80) : (isTablet ? 140 : isSmallPhone ? 100 : 120);
+  const logoTop = isLandscape ? 20 : (isTablet ? 50 : 67);
+  const logoLeft = isLandscape ? 20 : 30;
+  const cardHeight = isLandscape ? '85%' : '85%';
+  const paddingHorizontal = isTablet ? 24 : (isSmallPhone ? 12 : 16);
+  const headerPaddingTop = isLandscape ? 20 : (logoSize / 2 + 30);
+  const titleSize = isTablet ? 20 : (isSmallPhone ? 14 : 16);
+  const fontSize = isTablet ? 14 : (isSmallPhone ? 10 : 12);
 
   // Get user ID and semester on mount
   useEffect(() => {
@@ -115,50 +144,47 @@ const enrollment = () => {
   };
 
   const cancelEnrollment = async (enrollmentId) => {
-    try {
-      Alert.alert(
-        'Cancel Enrollment',
-        'Are you sure you want to cancel this enrollment?',
-        [
-          { text: 'No', onPress: () => {} },
-          {
-            text: 'Yes',
-            onPress: async () => {
-              try {
-                const response = await axios.delete(`${API_URL}/enrollments/${enrollmentId}`);
-                
-                if (response.data.success) {
-                  Alert.alert('Success', 'Enrollment cancelled');
-                  await fetchEnrollmentData();
-                } else {
-                  Alert.alert('Error', response.data.message || 'Failed to cancel enrollment');
-                }
-              } catch (error) {
-                console.error('Error cancelling enrollment:', error);
-                Alert.alert('Error', error.response?.data?.message || 'Failed to cancel enrollment');
+    Alert.alert(
+      'Cancel Enrollment',
+      'Are you sure you want to cancel this enrollment?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            try {
+              const response = await axios.delete(`${API_URL}/enrollments/${enrollmentId}`);
+              if (response.data.success) {
+                Alert.alert('Success', 'Enrollment cancelled');
+                await fetchEnrollmentData();
+              } else {
+                Alert.alert('Error', response.data.message || 'Failed to cancel enrollment');
               }
+            } catch (error) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to cancel enrollment');
             }
           }
-        ]
-      );
-    } catch (error) {
-      console.error('Error:', error);
-    }
+        }
+      ]
+    );
   };
 
   return (
     <LinearGradient
-      colors={['#8ddd9eff', '#11581bff', '#12521dff']}
+      colors={[COLORS.green, COLORS.darkGreen]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       className="flex-1"
     >
-      <View className="flex-1 flex-col items-center justify-center">
-
+      <View className="flex-1">
         {/* Logo */}
         <View 
-          className="absolute top-[67px] left-[30px] z-10 h-[120px] w-[120px] rounded-full bg-white"
+          className="absolute z-10 rounded-full bg-white"
           style={{
+            top: logoTop,
+            left: logoLeft,
+            width: logoSize,
+            height: logoSize,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,
@@ -166,21 +192,38 @@ const enrollment = () => {
             elevation: 8,
           }}
         >
-          <Image source={clsuLogoGreen} className="h-full w-full rounded-full" />
+          <Image 
+            source={clsuLogoGreen} 
+            style={{ width: logoSize, height: logoSize, borderRadius: logoSize / 2 }}
+            resizeMode="cover"
+          />
         </View>
 
         {/* Main Content Container */}
-        <View className="absolute bottom-0 h-[85%] w-full rounded-t-[30px] bg-white p-5 pt-20">
+        <View 
+          className="absolute bottom-0 w-full rounded-t-[30px] bg-white"
+          style={{ 
+            height: cardHeight,
+            paddingTop: headerPaddingTop,
+            paddingHorizontal: paddingHorizontal,
+            paddingBottom: insets.bottom,
+          }}
+        >
           <ScrollView showsVerticalScrollIndicator={false}>
-            
             {/* Header */}
-            <View className="mb-5">
-              <Text className="font-montserrat-bold mb-4 text-center text-lg text-[#2d5016]">
+            <View className="mb-4">
+              <Text 
+                className="font-montserrat-bold text-center mb-3"
+                style={{ fontSize: titleSize, color: COLORS.green }}
+              >
                 2ND SEMESTER 2025-2026 ENROLLMENT
               </Text>
               
-              <View className="items-center rounded-[5px] bg-[#ffa500] p-3">
-                <Text className="font-montserrat-bold text-sm text-white">
+              <View 
+                className="items-center rounded-lg p-3"
+                style={{ backgroundColor: COLORS.gold }}
+              >
+                <Text className="font-montserrat-bold" style={{ fontSize: fontSize + 2, color: COLORS.green }}>
                   ENROLLMENT IS NOW CLOSED
                 </Text>
               </View>
@@ -189,109 +232,132 @@ const enrollment = () => {
             {/* Loading State */}
             {loading ? (
               <View className="items-center justify-center p-10">
-                <ActivityIndicator size="large" color="#2d5016" />
-                <Text className="mt-3 text-sm text-gray-600">Loading enrollment data...</Text>
+                <ActivityIndicator size="large" color={COLORS.green} />
+                <Text className="mt-3 text-gray-600" style={{ fontSize: fontSize }}>Loading enrollment data...</Text>
               </View>
             ) : (
 
             <>
 
             {/* Main Content Area */}
-            <View className="mb-5 rounded-lg bg-[#f9f0d4] p-4">
+            <View 
+              className="mb-4 rounded-xl p-4"
+              style={{ backgroundColor: COLORS.lightGold, borderWidth: 1, borderColor: COLORS.gold }}
+            >
               
               {/* Left Side Info */}
-              <View className="mb-5">
-                <View className="mb-4 rounded-[5px] border-l-4 border-[#ffc107] bg-[#fff3cd] p-2.5">
-                  <Text className="font-montserrat-medium text-xs text-[#856404]">
+              <View className="mb-4">
+                <View 
+                  className="mb-4 rounded-lg border-l-4 p-2.5"
+                  style={{ borderColor: COLORS.gold, backgroundColor: COLORS.white }}
+                >
+                  <Text className="font-montserrat-medium" style={{ fontSize: fontSize, color: COLORS.green }}>
                     Enroll from your preregistered courses below
                   </Text>
                 </View>
 
                 <View className="mb-2 flex-row items-center">
-                  <Text className="font-montserrat-semibold mr-2 text-[13px] text-[#333]">User ID:</Text>
-                  <Text className="font-montserrat text-[13px] text-[#666]">{userId}</Text>
+                  <Text className="font-montserrat-semibold mr-2" style={{ fontSize: fontSize, color: COLORS.green }}>User ID:</Text>
+                  <Text className="font-montserrat" style={{ fontSize: fontSize, color: '#666' }}>{userId}</Text>
                 </View>
 
-                <View className="mb-2 flex-row items-center">
-                  <Text className="font-montserrat-semibold mr-2 text-[13px] text-[#333]">Semester:</Text>
-                  <Text className="font-montserrat text-[13px] text-[#666]">{semesterId}</Text>
+                <View className="mb-3 flex-row items-center">
+                  <Text className="font-montserrat-semibold mr-2" style={{ fontSize: fontSize, color: COLORS.green }}>Semester:</Text>
+                  <Text className="font-montserrat" style={{ fontSize: fontSize, color: '#666' }}>{semesterId}</Text>
                 </View>
 
                 <TouchableOpacity 
                   onPress={fetchEnrollmentData}
-                  className="self-start rounded-[5px] bg-[#5cb85c] px-2.5 py-2.5"
+                  className="self-start rounded-lg px-4 py-2 flex-row items-center"
+                  style={{ backgroundColor: COLORS.green }}
                 >
-                  <Text className="font-montserrat-bold text-[13px] text-white">Reload</Text>
+                  <Ionicons name="refresh" size={16} color={COLORS.gold} style={{ marginRight: 6 }} />
+                  <Text className="font-montserrat-bold text-white" style={{ fontSize: fontSize }}>Reload</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Preregistered Subjects Section */}
               <View className="mt-4">
-                <View className="mb-2.5 rounded-[5px] bg-[#e6d4a8] p-2.5">
-                  <Text className="font-montserrat-bold text-sm text-[#333]">
+                <View 
+                  className="mb-2.5 rounded-lg p-2.5"
+                  style={{ backgroundColor: COLORS.gold }}
+                >
+                  <Text className="font-montserrat-bold" style={{ fontSize: fontSize + 2, color: COLORS.green }}>
                     Preregistered Courses ({preregisteredSubjects.length})
                   </Text>
                 </View>
 
                 {/* Swipe hint */}
-                <View className="flex-row bg-[#d9edf7] p-2 rounded-[5px] mb-2.5 items-center">
-                  <Ionicons name="swap-horizontal" size={14} color="#31708f" />
-                  <Text className="font-montserrat ml-2 text-[10px] text-[#31708f]">
+                <View 
+                  className="flex-row p-2 rounded-lg mb-2.5 items-center"
+                  style={{ backgroundColor: COLORS.lightGreen, borderWidth: 1, borderColor: COLORS.green }}
+                >
+                  <Ionicons name="swap-horizontal" size={14} color={COLORS.green} />
+                  <Text className="font-montserrat ml-2" style={{ fontSize: fontSize - 1, color: COLORS.green }}>
                     Swipe left or right to see more details
                   </Text>
                 </View>
 
                 {preregisteredSubjects.length === 0 ? (
-                  <View className="items-center rounded-[5px] border border-[#ddd] bg-[#f9f9f9] p-4">
-                    <Ionicons name="document-outline" size={32} color="#ccc" />
-                    <Text className="font-montserrat mt-2 text-sm text-[#999]">
+                  <View 
+                    className="items-center rounded-lg p-4"
+                    style={{ backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.green }}
+                  >
+                    <Ionicons name="document-outline" size={32} color={COLORS.gold} />
+                    <Text className="font-montserrat mt-2 text-gray-500" style={{ fontSize: fontSize }}>
                       No preregistered courses yet. Preregister courses first!
                     </Text>
                   </View>
                 ) : (
                   <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                    <View className="min-w-[900px] rounded-[5px] border border-black bg-white">
-                      <View className="flex-row border-b border-black bg-[#f5dcc8]">
-                        <Text className="font-montserrat-bold w-[80px] p-2.5 text-center text-[11px] text-black">Action</Text>
-                        <Text className="font-montserrat-bold w-[100px] p-2.5 text-center text-[11px] text-black">Code</Text>
-                        <Text className="font-montserrat-bold w-[150px] p-2.5 text-center text-[11px] text-black">Course</Text>
-                        <Text className="font-montserrat-bold w-[80px] p-2.5 text-center text-[11px] text-black">Units</Text>
-                        <Text className="font-montserrat-bold w-[100px] p-2.5 text-center text-[11px] text-black">Section</Text>
-                        <Text className="font-montserrat-bold w-[120px] p-2.5 text-center text-[11px] text-black">Status</Text>
+                    <View 
+                      className="rounded-lg overflow-hidden"
+                      style={{ minWidth: isTablet ? 800 : 700, borderWidth: 1, borderColor: COLORS.green }}
+                    >
+                      <View className="flex-row" style={{ backgroundColor: COLORS.green }}>
+                        <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 90 }}>Action</Text>
+                        <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 100 }}>Code</Text>
+                        <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 150 }}>Course</Text>
+                        <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 80 }}>Units</Text>
+                        <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 100 }}>Section</Text>
+                        <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 120 }}>Status</Text>
                       </View>
                       
                       {preregisteredSubjects.map((subject, index) => (
-                        <View key={`prereg-${subject.prereg_id}-${index}`} className="flex-row items-center border-b border-[#ddd]">
-                          <View className="w-[80px] items-center justify-center p-2">
+                        <View 
+                          key={`prereg-${subject.prereg_id}-${index}`} 
+                          className="flex-row items-center"
+                          style={{ backgroundColor: index % 2 === 0 ? COLORS.white : COLORS.lightGreen, borderTopWidth: 1, borderColor: COLORS.green }}
+                        >
+                          <View className="items-center justify-center p-2" style={{ width: 90 }}>
                             <TouchableOpacity
                               disabled={enrolling[subject.prereg_id]}
                               onPress={() => enrollSubject(subject)}
-                              className={`rounded-[3px] px-3 py-1.5 ${
-                                enrolling[subject.prereg_id] 
-                                  ? 'bg-gray-400'
-                                  : 'bg-[#5cb85c]'
-                              }`}
+                              className="rounded-md px-2 py-1.5"
+                              style={{ backgroundColor: enrolling[subject.prereg_id] ? '#999' : COLORS.green, minWidth: 70 }}
                             >
-                              <Text className="font-montserrat-bold text-[11px] text-white">
-                                {enrolling[subject.prereg_id] ? 'ENROLLING...' : 'ENROLL'}
+                              <Text className="font-montserrat-bold text-white text-center" style={{ fontSize: fontSize - 2 }}>
+                                {enrolling[subject.prereg_id] ? '...' : 'ENROLL'}
                               </Text>
                             </TouchableOpacity>
                           </View>
-                          <Text className="font-montserrat w-[100px] p-2.5 text-center text-[11px] text-[#333]">
+                          <Text className="font-montserrat text-center text-gray-800 p-2.5" style={{ fontSize: fontSize, width: 100 }}>
                             {subject.subject_code || 'N/A'}
                           </Text>
-                          <Text className="font-montserrat w-[150px] p-2.5 text-[11px] text-[#333]">
+                          <Text className="font-montserrat text-gray-800 p-2.5" style={{ fontSize: fontSize, width: 150 }}>
                             {subject.subject_title || 'N/A'}
                           </Text>
-                          <Text className="font-montserrat w-[80px] p-2.5 text-center text-[11px] text-[#333]">
+                          <Text className="font-montserrat text-center text-gray-800 p-2.5" style={{ fontSize: fontSize, width: 80 }}>
                             {subject.units || 'N/A'}
                           </Text>
-                          <Text className="font-montserrat w-[100px] p-2.5 text-center text-[11px] text-[#333]">
+                          <Text className="font-montserrat text-center text-gray-800 p-2.5" style={{ fontSize: fontSize, width: 100 }}>
                             {subject.section || 'N/A'}
                           </Text>
-                          <Text className="font-montserrat w-[120px] p-2.5 text-center text-[11px] text-blue-600">
-                            Preregistered
-                          </Text>
+                          <View className="items-center p-2" style={{ width: 120 }}>
+                            <View className="rounded px-2 py-1" style={{ backgroundColor: COLORS.gold }}>
+                              <Text className="font-montserrat-bold" style={{ fontSize: fontSize - 1, color: COLORS.green }}>Preregistered</Text>
+                            </View>
+                          </View>
                         </View>
                       ))}
                     </View>
@@ -302,79 +368,108 @@ const enrollment = () => {
             </View>
 
             {/* Enrolled Subjects Section */}
-            <View className="mb-5 rounded-lg bg-[#f9f0d4] p-4">
-              <View className="mb-2.5 rounded-[5px] bg-[#e6d4a8] p-2.5">
-                <Text className="font-montserrat-bold text-sm text-[#333]">
+            <View 
+              className="mb-4 rounded-xl p-4"
+              style={{ backgroundColor: COLORS.lightGreen, borderWidth: 1, borderColor: COLORS.green }}
+            >
+              <View 
+                className="mb-2.5 rounded-lg p-2.5"
+                style={{ backgroundColor: COLORS.gold }}
+              >
+                <Text className="font-montserrat-bold" style={{ fontSize: fontSize + 2, color: COLORS.green }}>
                   List of Enrolled Subjects ({enrolledSubjects.length})
                 </Text>
               </View>
 
               {/* Swipe hint */}
-              <View className="flex-row bg-[#d9edf7] p-2 rounded-[5px] mb-2.5 items-center">
-                <Ionicons name="swap-horizontal" size={14} color="#31708f" />
-                <Text className="font-montserrat ml-2 text-[10px] text-[#31708f]">
+              <View 
+                className="flex-row p-2 rounded-lg mb-2.5 items-center"
+                style={{ backgroundColor: COLORS.lightGold, borderWidth: 1, borderColor: COLORS.gold }}
+              >
+                <Ionicons name="swap-horizontal" size={14} color={COLORS.green} />
+                <Text className="font-montserrat ml-2" style={{ fontSize: fontSize - 1, color: COLORS.green }}>
                   Swipe left or right to see more details
                 </Text>
               </View>
 
               {enrolledSubjects.length === 0 ? (
-                <View className="items-center rounded-[5px] border border-[#ddd] bg-[#f9f9f9] p-4">
-                  <Ionicons name="document-outline" size={32} color="#ccc" />
-                  <Text className="font-montserrat mt-2 text-sm text-[#999]">
+                <View 
+                  className="items-center rounded-lg p-4"
+                  style={{ backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.green }}
+                >
+                  <Ionicons name="document-outline" size={32} color={COLORS.gold} />
+                  <Text className="font-montserrat mt-2 text-gray-500" style={{ fontSize: fontSize }}>
                     No enrolled courses yet. Enroll from preregistered courses!
                   </Text>
                 </View>
               ) : (
                 <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                  <View className="min-w-[1000px] rounded-[5px] border border-black bg-white">
-                    <View className="flex-row border-b border-black bg-[#f5dcc8]">
-                      <Text className="font-montserrat-bold w-[80px] p-2.5 text-center text-[11px] text-black">Action</Text>
-                      <Text className="font-montserrat-bold w-[120px] p-2.5 text-center text-[11px] text-black">Code</Text>
-                      <Text className="font-montserrat-bold w-[150px] p-2.5 text-center text-[11px] text-black">Course</Text>
-                      <Text className="font-montserrat-bold w-[80px] p-2.5 text-center text-[11px] text-black">Units</Text>
-                      <Text className="font-montserrat-bold w-[100px] p-2.5 text-center text-[11px] text-black">Section</Text>
-                      <Text className="font-montserrat-bold w-[140px] p-2.5 text-center text-[11px] text-black">Approval Status</Text>
-                      <Text className="font-montserrat-bold w-[180px] p-2.5 text-center text-[11px] text-black">Remarks</Text>
+                  <View 
+                    className="rounded-lg overflow-hidden"
+                    style={{ minWidth: isTablet ? 900 : 800, borderWidth: 1, borderColor: COLORS.green }}
+                  >
+                    <View className="flex-row" style={{ backgroundColor: COLORS.green }}>
+                      <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 80 }}>Action</Text>
+                      <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 100 }}>Code</Text>
+                      <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 150 }}>Course</Text>
+                      <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 80 }}>Units</Text>
+                      <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 100 }}>Section</Text>
+                      <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 120 }}>Status</Text>
+                      <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, width: 150 }}>Remarks</Text>
                     </View>
                     
                     {enrolledSubjects.map((subject, index) => (
-                      <View key={`enrolled-${subject.enrollment_id}-${index}`} className="flex-row items-center border-b border-[#ddd]">
-                        <View className="w-[80px] items-center justify-center p-2">
+                      <View 
+                        key={`enrolled-${subject.enrollment_id}-${index}`} 
+                        className="flex-row items-center"
+                        style={{ backgroundColor: index % 2 === 0 ? COLORS.white : COLORS.lightGreen, borderTopWidth: 1, borderColor: COLORS.green }}
+                      >
+                        <View className="items-center justify-center p-2" style={{ width: 80 }}>
                           {subject.approval_status === 'pending' ? (
                             <TouchableOpacity
                               onPress={() => cancelEnrollment(subject.enrollment_id)}
-                              className="rounded-[3px] bg-[#d9534f] px-3 py-1.5"
+                              className="rounded px-3 py-1.5"
+                              style={{ backgroundColor: '#d9534f' }}
                             >
-                              <Text className="font-montserrat-bold text-[11px] text-white">Cancel</Text>
+                              <Text className="font-montserrat-bold text-white" style={{ fontSize: fontSize - 1 }}>Cancel</Text>
                             </TouchableOpacity>
                           ) : (
-                            <Text className="font-montserrat text-[10px] text-gray-400">—</Text>
+                            <Text className="font-montserrat text-gray-400" style={{ fontSize: fontSize }}>—</Text>
                           )}
                         </View>
-                        <Text className="font-montserrat w-[120px] p-2.5 text-center text-[11px] text-[#333]">
+                        <Text className="font-montserrat text-center text-gray-800 p-2.5" style={{ fontSize: fontSize, width: 100 }}>
                           {subject.subject_code || 'N/A'}
                         </Text>
-                        <Text className="font-montserrat w-[150px] p-2.5 text-[11px] text-[#333]">
+                        <Text className="font-montserrat text-gray-800 p-2.5" style={{ fontSize: fontSize, width: 150 }}>
                           {subject.subject_title || 'N/A'}
                         </Text>
-                        <Text className="font-montserrat w-[80px] p-2.5 text-center text-[11px] text-[#333]">
+                        <Text className="font-montserrat text-center text-gray-800 p-2.5" style={{ fontSize: fontSize, width: 80 }}>
                           {subject.units || 'N/A'}
                         </Text>
-                        <Text className="font-montserrat w-[100px] p-2.5 text-center text-[11px] text-[#333]">
+                        <Text className="font-montserrat text-center text-gray-800 p-2.5" style={{ fontSize: fontSize, width: 100 }}>
                           {subject.section || 'N/A'}
                         </Text>
-                        <View className="w-[140px] items-center justify-center p-2">
-                          <View className={`rounded-[3px] px-2 py-1 ${
-                            subject.approval_status === 'approved' ? 'bg-[#5cb85c]' : 
-                            subject.approval_status === 'rejected' ? 'bg-[#d9534f]' : 'bg-[#f0ad4e]'
-                          }`}>
-                            <Text className="font-montserrat-bold text-[10px] text-white">
+                        <View className="items-center p-2" style={{ width: 120 }}>
+                          <View 
+                            className="rounded px-2 py-1"
+                            style={{ 
+                              backgroundColor: subject.approval_status === 'approved' ? COLORS.green : 
+                                               subject.approval_status === 'rejected' ? '#d9534f' : COLORS.gold
+                            }}
+                          >
+                            <Text 
+                              className="font-montserrat-bold"
+                              style={{ 
+                                fontSize: fontSize - 1, 
+                                color: subject.approval_status === 'pending' ? COLORS.green : COLORS.white 
+                              }}
+                            >
                               {subject.approval_status === 'approved' ? '✓ APPROVED' : 
                                subject.approval_status === 'rejected' ? '✗ REJECTED' : 'PENDING'}
                             </Text>
                           </View>
                         </View>
-                        <Text className="font-montserrat w-[180px] p-2.5 text-center text-[11px] text-[#333]">
+                        <Text className="font-montserrat text-center text-gray-800 p-2.5" style={{ fontSize: fontSize, width: 150 }}>
                           {subject.remarks || '—'}
                         </Text>
                       </View>
@@ -385,32 +480,45 @@ const enrollment = () => {
             </View>
 
             {/* Excluded Subjects Section */}
-            <View className="rounded-lg bg-[#f9f0d4] p-4">
-              <View className="mb-4 flex-row items-center justify-between">
-                <Text className="font-montserrat-bold text-sm text-[#333]">Excluded Subject/s</Text>
-                <TouchableOpacity className="rounded-[5px] bg-[#5cb85c] px-4 py-2">
-                  <Text className="font-montserrat-bold text-xs text-white">Reload</Text>
+            <View 
+              className="rounded-xl p-4 mb-4"
+              style={{ backgroundColor: COLORS.lightGold, borderWidth: 1, borderColor: COLORS.gold }}
+            >
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="font-montserrat-bold" style={{ fontSize: fontSize + 2, color: COLORS.green }}>
+                  Excluded Subject/s
+                </Text>
+                <TouchableOpacity 
+                  className="rounded-lg px-4 py-2"
+                  style={{ backgroundColor: COLORS.green }}
+                >
+                  <Text className="font-montserrat-bold text-white" style={{ fontSize: fontSize }}>Reload</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Excluded Subjects Table */}
-              <View className="rounded-[5px] border border-black bg-white">
-                <View className="flex-row border-b border-black bg-[#f5dcc8]">
-                  <Text className="font-montserrat-bold flex-[0.5] p-2.5 text-center text-[11px] text-black">...</Text>
-                  <Text className="font-montserrat-bold flex-[2] p-2.5 text-center text-[11px] text-black">Catalogue</Text>
-                  <Text className="font-montserrat-bold flex-1 p-2.5 text-center text-[11px] text-black">Units</Text>
+              <View 
+                className="rounded-lg overflow-hidden"
+                style={{ borderWidth: 1, borderColor: COLORS.green }}
+              >
+                <View className="flex-row" style={{ backgroundColor: COLORS.green }}>
+                  <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, flex: 2 }}>Catalogue</Text>
+                  <Text className="font-montserrat-bold text-center text-white p-2.5" style={{ fontSize: fontSize, flex: 1 }}>Units</Text>
                 </View>
                 
                 {excludedSubjects.length === 0 ? (
-                  <View className="items-center p-5">
-                    <Text className="font-montserrat text-xs text-[#999]">No excluded subjects</Text>
+                  <View className="items-center p-5" style={{ backgroundColor: COLORS.white }}>
+                    <Text className="font-montserrat text-gray-400" style={{ fontSize: fontSize }}>No excluded subjects</Text>
                   </View>
                 ) : (
                   excludedSubjects.map((subject, index) => (
-                    <View key={index} className="flex-row border-b border-[#ddd]">
-                      <Text className="font-montserrat flex-[0.5] p-2.5 text-center text-[11px] text-[#333]">...</Text>
-                      <Text className="font-montserrat flex-[2] p-2.5 text-center text-[11px] text-[#333]">{subject.catalogue}</Text>
-                      <Text className="font-montserrat flex-1 p-2.5 text-center text-[11px] text-[#333]">{subject.units}</Text>
+                    <View 
+                      key={index} 
+                      className="flex-row"
+                      style={{ backgroundColor: index % 2 === 0 ? COLORS.white : COLORS.lightGreen, borderTopWidth: 1, borderColor: COLORS.green }}
+                    >
+                      <Text className="font-montserrat text-center text-gray-800 p-2.5" style={{ fontSize: fontSize, flex: 2 }}>{subject.catalogue}</Text>
+                      <Text className="font-montserrat text-center text-gray-800 p-2.5" style={{ fontSize: fontSize, flex: 1 }}>{subject.units}</Text>
                     </View>
                   ))
                 )}
@@ -422,10 +530,9 @@ const enrollment = () => {
 
           </ScrollView>
         </View>
-
       </View>
     </LinearGradient>
   );
 };
 
-export default enrollment;
+export default Enrollment;

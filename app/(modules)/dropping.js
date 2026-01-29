@@ -2,9 +2,18 @@ import React from "react";
 import { View, Text, TouchableOpacity, Image, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from '@expo/vector-icons';
-import clsuLogoGreen from '../../assets/images/clsu.png';
+import clsuLogoGreen from '../../assets/images/clsuLogoGreen.png';
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// University Colors
+const COLORS = {
+  green: '#008000',
+  gold: '#FFD700',
+  white: '#FFFFFF',
+  lightGold: '#FFF8DC',
+  darkGreen: '#006400',
+};
 
 const Dropping = () => {
   const router = useRouter();
@@ -14,89 +23,134 @@ const Dropping = () => {
   // Responsive breakpoints
   const isLandscape = width > height;
   const isTablet = width >= 768;
+  const isSmallPhone = width < 375;
   
   // Responsive values
-  const logoSize = isLandscape ? (isTablet ? 100 : 90) : 120;
-  const logoTop = isLandscape ? -50 : -60;
-  const cardHeight = isLandscape ? '90%' : '85%';
-  const headerMarginTop = isLandscape ? '8%' : '15%';
-  const titleSize = isTablet ? 'text-3xl' : 'text-2xl';
+  const logoSize = isLandscape ? (isTablet ? 100 : 80) : (isTablet ? 140 : isSmallPhone ? 100 : 120);
+  const logoTop = isLandscape ? 20 : (isTablet ? 50 : 67);
+  const logoLeft = isLandscape ? 20 : 30;
+  const cardHeight = isLandscape ? '85%' : '85%';
+  const paddingHorizontal = isTablet ? 40 : (isSmallPhone ? 16 : 24);
+  const titleSize = isTablet ? 28 : (isSmallPhone ? 20 : 24);
+  const subtitleSize = isTablet ? 18 : (isSmallPhone ? 14 : 16);
+  const buttonPaddingV = isTablet ? 18 : (isSmallPhone ? 12 : 16);
+  const buttonPaddingH = isTablet ? 40 : (isSmallPhone ? 24 : 32);
+  const iconSize = isTablet ? 64 : (isSmallPhone ? 40 : 48);
+  const cardMaxWidth = isTablet ? 500 : (isLandscape ? 400 : '100%');
 
   return (
     <LinearGradient
-      colors={['#008000', '#006400', '#004d00']}
+      colors={[COLORS.green, COLORS.darkGreen]}
       start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
+      end={{ x: 1, y: 1 }}
       className="flex-1"
     >
-      <View 
-        className="absolute bottom-0 w-full rounded-t-3xl bg-white"
-        style={{ height: cardHeight }}
-      >
+      <View className="flex-1">
         {/* Logo */}
         <View 
-          className="absolute z-10 rounded-full bg-white shadow-lg"
+          className="absolute z-10 rounded-full bg-white"
           style={{
-            left: 30,
             top: logoTop,
+            left: logoLeft,
             width: logoSize,
             height: logoSize,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 6,
+            elevation: 8,
           }}
         >
           <Image 
             source={clsuLogoGreen} 
             style={{ width: logoSize, height: logoSize, borderRadius: logoSize / 2 }}
+            resizeMode="cover"
           />
         </View>
 
-        {/* Coming Soon Card */}
-        <View className="flex-1 justify-center items-center px-5">
-          <View 
-            className="w-full rounded-2xl bg-white p-8 items-center"
-            style={{
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 12,
-              elevation: 8,
-              maxWidth: isTablet ? 400 : '100%',
-            }}
-          >
-            {/* Icon */}
-            <View className="mb-6">
-              <LinearGradient
-                colors={['#008000', '#006400']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className="h-24 w-24 items-center justify-center rounded-full"
-              >
-                <Ionicons name="construct-outline" size={48} color="#fff" />
-              </LinearGradient>
-            </View>
-
-            {/* Title */}
-            <Text className="mb-2 text-center font-montserrat-bold text-2xl text-[#008000]">
-              Coming Soon
-            </Text>
-            
-            {/* Subtitle */}
-            <Text className="mb-6 text-center font-montserrat text-base text-gray-500 px-4">
-              This feature is currently under development. Please check back later.
-            </Text>
-            
-            {/* Back Button */}
-            <TouchableOpacity 
-              className="items-center justify-center rounded-xl bg-[#008000] px-8 py-3"
-              onPress={() => router.back()}
-              activeOpacity={0.8}
+        {/* Main Container */}
+        <View 
+          className="absolute bottom-0 w-full rounded-t-[30px] bg-white"
+          style={{ 
+            height: cardHeight,
+            paddingTop: isLandscape ? 20 : (logoSize / 2 + 20),
+            paddingHorizontal: paddingHorizontal,
+            paddingBottom: insets.bottom + 20,
+          }}
+        >
+          {/* Centered Content Card */}
+          <View className="flex-1 justify-center items-center">
+            <View 
+              className="rounded-3xl p-6 items-center"
+              style={{
+                backgroundColor: COLORS.lightGold,
+                borderWidth: 2,
+                borderColor: COLORS.gold,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.15,
+                shadowRadius: 15,
+                elevation: 10,
+                width: cardMaxWidth,
+                maxWidth: '100%',
+              }}
             >
-              <View className="flex-row items-center">
-                <Ionicons name="arrow-back" size={20} color="#fff" style={{ marginRight: 8 }} />
-                <Text className="font-montserrat-bold text-base text-white">
+              {/* Icon */}
+              <View 
+                className="mb-4 items-center justify-center rounded-full"
+                style={{
+                  width: iconSize + 24,
+                  height: iconSize + 24,
+                  backgroundColor: COLORS.green,
+                }}
+              >
+                <Ionicons name="remove-circle-outline" size={iconSize} color={COLORS.gold} />
+              </View>
+
+              {/* Title */}
+              <Text 
+                className="font-montserrat-bold text-center mb-2"
+                style={{ fontSize: titleSize, color: COLORS.green }}
+              >
+                Dropping of Subjects
+              </Text>
+              
+              {/* Subtitle */}
+              <Text 
+                className="font-montserrat text-center text-gray-600 mb-6"
+                style={{ 
+                  fontSize: subtitleSize,
+                  paddingHorizontal: isSmallPhone ? 8 : 16,
+                }}
+              >
+                This feature is currently under development. Please check back later.
+              </Text>
+              
+              {/* Go Back Button */}
+              <TouchableOpacity 
+                className="rounded-xl items-center flex-row justify-center"
+                onPress={() => router.back()}
+                activeOpacity={0.8}
+                style={{
+                  backgroundColor: COLORS.green,
+                  paddingVertical: buttonPaddingV,
+                  paddingHorizontal: buttonPaddingH,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 6,
+                  elevation: 6,
+                }}
+              >
+                <Ionicons name="arrow-back" size={20} color={COLORS.white} style={{ marginRight: 8 }} />
+                <Text 
+                  className="font-montserrat-bold text-white"
+                  style={{ fontSize: isTablet ? 18 : 16 }}
+                >
                   Go Back
                 </Text>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
