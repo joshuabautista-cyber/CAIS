@@ -175,7 +175,7 @@ export default function App() {
               </View>
 
               {/* Forgot Password */}
-              <Pressable onPress={() => Alert.alert("Forgot Password", "Password reset feature coming soon")}>
+              <Pressable onPress={() => router.push("/forgotpassword")}>
                 <Text className="mb-6 text-right font-montserrat-medium text-xs text-[#008000]">
                   Forgot Password?
                 </Text>
@@ -194,7 +194,7 @@ export default function App() {
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
                   <View className="flex-row items-center">
-                    <Text className="font-montserrat-bold text-base text-white">
+                    <Text className="font-montserrat-bold text-md text-white">
                       Sign In
                     </Text>
                     <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
@@ -215,9 +215,10 @@ export default function App() {
                 onPress={() => router.push("/subjects-schedule")}
                 activeOpacity={0.8}
               >
+                
                 <View className="flex-row items-center">
                   <Ionicons name="calendar-outline" size={18} color="#008000" />
-                  <Text className="ml-2 font-montserrat-bold text-sm text-[#008000]">
+                  <Text className="ml-2 font-montserrat-bold text-md text-[#008000]">
                     View Subjects Schedule
                   </Text>
                 </View>

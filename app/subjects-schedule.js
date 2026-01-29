@@ -192,13 +192,23 @@ const SubjectsSchedule = () => {
           />
         </View>
 
-        {/* Back Button */}
+        {/* Back Button - positioned inside the white card */}
         <TouchableOpacity
           onPress={() => router.back()}
-          className="absolute z-10 bg-[#008000] rounded-full p-2"
-          style={{ right: 30, top: logoTop + 30 }}
+          className="absolute z-10 flex-row items-center rounded-full px-4 py-2"
+          style={{ 
+            right: 20, 
+            top: 16,
+            backgroundColor: '#FFD700',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 4,
+          }}
         >
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Ionicons name="arrow-back" size={18} color="#004d00" />
+          <Text className="ml-1 font-montserrat-bold text-sm text-[#004d00]">Back</Text>
         </TouchableOpacity>
 
         {/* Header */}
