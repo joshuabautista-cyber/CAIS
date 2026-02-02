@@ -141,9 +141,7 @@ const Registration = () => {
     }
   };
 
-  const handleDownload = () => {
-    Alert.alert("Download", "Download feature coming soon");
-  };
+
 
   return (
     <LinearGradient
@@ -240,24 +238,6 @@ const Registration = () => {
             </View>
           </View>
 
-          {/* Download Button */}
-          <TouchableOpacity
-            className="mb-4 h-12 items-center justify-center rounded-xl bg-[#1E90FF] shadow-md shadow-gray-300"
-            onPress={handleDownload}
-          >
-            <View className="flex-row items-center">
-              <Ionicons name="download-outline" size={18} color="#fff" />
-              <Text className="font-montserrat-bold text-white ml-2">Download Registration Form</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Loading State */}
-          {loading && (
-            <View className="py-10 items-center">
-              <ActivityIndicator size="large" color="#008000" />
-              <Text className="text-center text-gray-500 mt-3 font-montserrat">Loading registration...</Text>
-            </View>
-          )}
 
           {/* Summary Card */}
           {!loading && value && registrations.length > 0 && (
