@@ -87,13 +87,30 @@ const Grades = () => {
         semestersArray = response.data.data;
       }
       
-      const formattedSemesters = semestersArray
+      const allSemesters = semestersArray
         .map(sem => ({
           label: `${sem.semester_name} ${sem.semester_year}`,
           value: sem.semester_id,
           status: sem.semester_status
         }))
-        .sort((a, b) => b.value - a.value);
+        .sort((a, b) => a.value - b.value); // Sort ascending by ID
+      
+      // Find active semester index
+      const activeIndex = allSemesters.findIndex(s => s.status === 'active');
+      
+      // Filter to show: past 3 semesters + active + next semester
+      let filteredSemesters = [];
+      if (activeIndex !== -1) {
+        const startIndex = Math.max(0, activeIndex - 3); // 3 before active
+        const endIndex = Math.min(allSemesters.length - 1, activeIndex + 1); // 1 after active (next sem)
+        filteredSemesters = allSemesters.slice(startIndex, endIndex + 1);
+      } else {
+        // Fallback: show last 5 semesters if no active found
+        filteredSemesters = allSemesters.slice(-5);
+      }
+      
+      // Sort descending for display (newest first)
+      const formattedSemesters = filteredSemesters.sort((a, b) => b.value - a.value);
       
       setSemesters(formattedSemesters);
       

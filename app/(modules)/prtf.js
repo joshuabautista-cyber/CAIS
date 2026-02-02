@@ -1,9 +1,13 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Image, ScrollView, TextInput, useWindowDimensions } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, Image, ScrollView, TextInput, ActivityIndicator, Alert, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import clsuLogoGreen from '../../assets/images/clsuLogoGreen.png';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_URL = 'http://192.168.107.151:8000/api';
 
 // University Colors
 const COLORS = {
@@ -18,7 +22,6 @@ const COLORS = {
 const Prtf = () => {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const [searchQuery, setSearchQuery] = useState("");
 
   // Responsive breakpoints
   const isLandscape = width > height;
@@ -35,16 +38,249 @@ const Prtf = () => {
   const titleSize = isTablet ? 22 : (isSmallPhone ? 16 : 18);
   const fontSize = isTablet ? 14 : (isSmallPhone ? 10 : 12);
 
-  // Sample data
-  const subjectsOffered = [
-    { id: 1, status: "CLOSED", catalogueNumber: "AGBUS 705", section: "MAB", schedule: "irregular" },
-    { id: 2, status: "CLOSED", catalogueNumber: "AGBUS 710", section: "MAB", schedule: "irregular" },
-    { id: 3, status: "CLOSED", catalogueNumber: "AGBUS 715", section: "MAB", schedule: "irregular" },
-    { id: 4, status: "CLOSED", catalogueNumber: "AGBUS 720", section: "MAB", schedule: "irregular" },
-    { id: 5, status: "CLOSED", catalogueNumber: "AGBUS 800_1", section: "MAB", schedule: "irregular" },
-  ];
+  // State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [subjectsOffered, setSubjectsOffered] = useState([]);
+  const [preregisteredSubjects, setPreregisteredSubjects] = useState([]);
+  const [locallyAddedSubjects, setLocallyAddedSubjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
+  const [userId, setUserId] = useState(null);
+  const [registering, setRegistering] = useState({});
+  const itemsPerPage = 10;
 
-  const preregisteredSubjects = [];
+  useEffect(() => {
+    getUserId();
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
+      fetchInitialData();
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchAllSubjectsOffered();
+  }, [currentPage]);
+
+  useEffect(() => {
+    const delaySearch = setTimeout(() => {
+      setCurrentPage(1);
+      fetchAllSubjectsOffered();
+    }, 500);
+    return () => clearTimeout(delaySearch);
+  }, [searchQuery]);
+
+  const getUserId = async () => {
+    try {
+      const storedUserId = await AsyncStorage.getItem('user_id');
+      setUserId(storedUserId || '1033');
+    } catch (error) {
+      setUserId('1033');
+    }
+  };
+
+  const fetchInitialData = async () => {
+    try {
+      setLoading(true);
+      await fetchPreregisteredSubjects();
+      await fetchAllSubjectsOffered();
+    } catch (error) {
+      console.error('Error fetching initial data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllSubjectsOffered = async () => {
+    try {
+      setLoadingSubjects(true);
+      const response = await axios.get(`${API_URL}/prereg/all-subjects`, {
+        params: { search: searchQuery, page: currentPage, per_page: itemsPerPage }
+      });
+
+      if (response.data.success) {
+        setSubjectsOffered(response.data.data || []);
+        if (response.data.meta) {
+          setTotalPages(response.data.meta.last_page);
+          setTotalEntries(response.data.meta.total);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      setSubjectsOffered([]);
+    } finally {
+      setLoadingSubjects(false);
+    }
+  };
+
+  const fetchPreregisteredSubjects = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/prereg/user-courses`, {
+        params: { user_id: userId }
+      });
+      if (response.data.success) {
+        setPreregisteredSubjects(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching preregistered:', error);
+      setPreregisteredSubjects([]);
+    }
+  };
+
+  const addCourse = (subject) => {
+    const isAlreadyAdded = locallyAddedSubjects.some(p => p.schedId === subject.schedId);
+    const isAlreadyRegistered = preregisteredSubjects.some(p => p.schedId === subject.schedId);
+    
+    if (isAlreadyAdded || isAlreadyRegistered) {
+      Alert.alert('Already Added', 'This course is already in your list.');
+      return;
+    }
+    
+    setLocallyAddedSubjects([...locallyAddedSubjects, subject]);
+    Alert.alert('Added', 'Course added to your preregistration list.');
+  };
+
+  const removeCourse = (schedId) => {
+    setLocallyAddedSubjects(locallyAddedSubjects.filter(s => s.schedId !== schedId));
+  };
+
+  const submitAllRegistrations = async () => {
+    if (locallyAddedSubjects.length === 0) {
+      Alert.alert('No Courses', 'Please add courses before registering.');
+      return;
+    }
+
+    try {
+      setRegistering(prev => ({ ...prev, 'all': true }));
+      
+      const results = [];
+      for (const subject of locallyAddedSubjects) {
+        try {
+          const preregData = {
+            user_id: parseInt(userId),
+            semester_id: parseInt(subject.semester_id),
+            course_id: parseInt(subject.course_id),
+            schedId: parseInt(subject.schedId),
+            section: subject.section,
+            subject_code: subject.subject_code,
+            subject_title: subject.subject_title,
+            units: parseInt(subject.units) || 0,
+            status: 'pending'
+          };
+          
+          const response = await axios.post(`${API_URL}/prereg/add`, preregData);
+          results.push({ success: response.data.success, subject: subject.subject_code });
+        } catch (error) {
+          results.push({ success: false, subject: subject.subject_code, error: error.message });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      if (successCount === results.length) {
+        Alert.alert('Success', `All ${successCount} courses preregistered!`);
+        setLocallyAddedSubjects([]);
+        await fetchPreregisteredSubjects();
+      } else {
+        Alert.alert('Partial Success', `${successCount}/${results.length} courses registered.`);
+        await fetchPreregisteredSubjects();
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to register courses');
+    } finally {
+      setRegistering(prev => ({ ...prev, 'all': false }));
+    }
+  };
+
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisible = 5;
+    
+    pages.push(
+      <TouchableOpacity
+        key="prev"
+        className="px-2.5 py-1 rounded"
+        style={{ 
+          backgroundColor: currentPage === 1 ? '#d1d5db' : COLORS.white, 
+          borderWidth: 1, 
+          borderColor: currentPage === 1 ? '#d1d5db' : '#d1d5db' 
+        }}
+        disabled={currentPage === 1}
+        onPress={() => setCurrentPage(currentPage - 1)}
+      >
+        <Text className="font-montserrat" style={{ fontSize: fontSize - 1, color: '#374151' }}>Previous</Text>
+      </TouchableOpacity>
+    );
+
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <TouchableOpacity
+          key={i}
+          className="px-2.5 py-1 rounded"
+          style={{ 
+            backgroundColor: currentPage === i ? COLORS.green : COLORS.white, 
+            borderWidth: 1, 
+            borderColor: currentPage === i ? COLORS.green : '#d1d5db' 
+          }}
+          onPress={() => setCurrentPage(i)}
+        >
+          <Text className="font-montserrat" style={{ fontSize: fontSize - 1, color: currentPage === i ? COLORS.white : '#374151' }}>{i}</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    if (endPage < totalPages) {
+      pages.push(<Text key="dots" className="font-montserrat self-center" style={{ fontSize: fontSize - 1, color: '#374151' }}>...</Text>);
+      pages.push(
+        <TouchableOpacity
+          key={totalPages}
+          className="px-2.5 py-1 rounded"
+          style={{ backgroundColor: COLORS.white, borderWidth: 1, borderColor: '#d1d5db' }}
+          onPress={() => setCurrentPage(totalPages)}
+        >
+          <Text className="font-montserrat" style={{ fontSize: fontSize - 1, color: '#374151' }}>{totalPages}</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    pages.push(
+      <TouchableOpacity
+        key="next"
+        className="px-2.5 py-1 rounded"
+        style={{ 
+          backgroundColor: currentPage === totalPages ? '#d1d5db' : COLORS.white, 
+          borderWidth: 1, 
+          borderColor: currentPage === totalPages ? '#d1d5db' : '#d1d5db' 
+        }}
+        disabled={currentPage === totalPages}
+        onPress={() => setCurrentPage(currentPage + 1)}
+      >
+        <Text className="font-montserrat" style={{ fontSize: fontSize - 1, color: '#374151' }}>Next</Text>
+      </TouchableOpacity>
+    );
+
+    return pages;
+  };
+
+  if (loading) {
+    return (
+      <LinearGradient
+        colors={[COLORS.green, COLORS.darkGreen]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        className="flex-1 justify-center items-center"
+      >
+        <ActivityIndicator size="large" color={COLORS.white} />
+        <Text className="font-montserrat text-white mt-4">Loading...</Text>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient
@@ -99,6 +335,59 @@ const Prtf = () => {
 
             {/* Content Layout */}
             <View style={{ gap: isTablet ? 24 : 16 }}>
+
+              {/* Locally Added Courses (Pending) - Only show when there are pending items */}
+              {locallyAddedSubjects.length > 0 && (
+                <View 
+                  className="p-4 rounded-xl"
+                  style={{ backgroundColor: COLORS.lightGold, borderWidth: 1, borderColor: COLORS.gold }}
+                >
+                  <View className="flex-row justify-between items-center mb-4">
+                    <View 
+                      className="p-2.5 rounded-lg flex-1 mr-2"
+                      style={{ backgroundColor: COLORS.gold }}
+                    >
+                      <Text 
+                        className="font-montserrat-bold text-center"
+                        style={{ fontSize: fontSize, color: COLORS.green }}
+                      >
+                        PENDING REGISTRATION ({locallyAddedSubjects.length})
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      disabled={registering['all']}
+                      onPress={submitAllRegistrations}
+                      className="px-4 py-2.5 rounded-lg"
+                      style={{ backgroundColor: registering['all'] ? '#9ca3af' : COLORS.green }}
+                    >
+                      <Text className="font-montserrat-bold text-white" style={{ fontSize: fontSize - 1 }}>
+                        {registering['all'] ? 'REGISTERING...' : 'REGISTER ALL'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View className="rounded-lg overflow-hidden" style={{ borderWidth: 1, borderColor: COLORS.green }}>
+                    <View className="flex-row" style={{ backgroundColor: COLORS.green }}>
+                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, flex: 0.5 }}>#</Text>
+                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, flex: 2 }}>CATALOGUE NUMBER</Text>
+                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, flex: 1.5 }}>SECTION</Text>
+                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, flex: 0.8 }}>ACTION</Text>
+                    </View>
+                    {locallyAddedSubjects.map((subject, index) => (
+                      <View key={`local-${subject.schedId}`} className="flex-row" style={{ backgroundColor: index % 2 === 0 ? COLORS.white : COLORS.lightGreen, borderTopWidth: 1, borderColor: COLORS.green }}>
+                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, flex: 0.5 }}>{index + 1}</Text>
+                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, flex: 2 }}>{subject.subject_code}</Text>
+                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, flex: 1.5 }}>{subject.section}</Text>
+                        <View className="justify-center items-center" style={{ flex: 0.8 }}>
+                          <TouchableOpacity onPress={() => removeCourse(subject.schedId)}>
+                            <Ionicons name="close-circle" size={20} color="#d9534f" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
               
               {/* Preregistered Subjects Section */}
               <View 
@@ -152,9 +441,9 @@ const Prtf = () => {
                     </View>
                   ) : (
                     preregisteredSubjects.map((subject, index) => (
-                      <View key={index} className="flex-row" style={{ backgroundColor: index % 2 === 0 ? COLORS.white : COLORS.lightGreen, borderTopWidth: 1, borderColor: COLORS.green }}>
+                      <View key={`prereg-${subject.prereg_id || index}`} className="flex-row" style={{ backgroundColor: index % 2 === 0 ? COLORS.white : COLORS.lightGreen, borderTopWidth: 1, borderColor: COLORS.green }}>
                         <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, flex: 0.5 }}>{index + 1}</Text>
-                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, flex: 2 }}>{subject.catalogueNumber}</Text>
+                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, flex: 2 }}>{subject.subject_code || 'N/A'}</Text>
                         <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, flex: 1.5 }}>{subject.section}</Text>
                       </View>
                     ))
@@ -208,80 +497,91 @@ const Prtf = () => {
                   </Text>
                 </View>
 
-                {/* Subjects Table */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                  <View 
-                    className="rounded-lg overflow-hidden"
-                    style={{ minWidth: isTablet ? 700 : 600, borderWidth: 1, borderColor: COLORS.green }}
-                  >
-                    <View className="flex-row" style={{ backgroundColor: COLORS.green }}>
-                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 40 }}>#</Text>
-                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 80 }}>STATUS</Text>
-                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 180 }}>CATALOGUE NUMBER</Text>
-                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 100 }}>SECTION</Text>
-                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 120 }}>SCHEDULE</Text>
-                    </View>
-                    
-                    {subjectsOffered.map((subject, index) => (
-                      <View 
-                        key={subject.id} 
-                        className="flex-row"
-                        style={{ backgroundColor: index % 2 === 0 ? COLORS.white : COLORS.lightGreen, borderTopWidth: 1, borderColor: COLORS.green }}
-                      >
-                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 40 }}>{subject.id}</Text>
-                        <View className="p-2 items-center justify-center" style={{ width: 80 }}>
-                          <View 
-                            className="px-2 py-1 rounded"
-                            style={{ backgroundColor: subject.status === 'CLOSED' ? '#d9534f' : COLORS.green }}
-                          >
-                            <Text className="font-montserrat-bold text-white" style={{ fontSize: fontSize - 2 }}>{subject.status}</Text>
-                          </View>
-                        </View>
-                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 180 }}>{subject.catalogueNumber}</Text>
-                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 100 }}>{subject.section}</Text>
-                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 120 }}>{subject.schedule}</Text>
-                      </View>
-                    ))}
+                {/* Loading */}
+                {loadingSubjects && (
+                  <View className="py-5 items-center">
+                    <ActivityIndicator size="small" color={COLORS.green} />
                   </View>
-                </ScrollView>
+                )}
+
+                {/* Subjects Table */}
+                {!loadingSubjects && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+                    <View 
+                      className="rounded-lg overflow-hidden"
+                      style={{ minWidth: isTablet ? 700 : 600, borderWidth: 1, borderColor: COLORS.green }}
+                    >
+                      <View className="flex-row" style={{ backgroundColor: COLORS.green }}>
+                        <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 40 }}>#</Text>
+                        <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 80 }}>STATUS</Text>
+                        <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 180 }}>CATALOGUE NUMBER</Text>
+                        <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 100 }}>SECTION</Text>
+                        <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 120 }}>SCHEDULE</Text>
+                        <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 80 }}>ACTION</Text>
+                      </View>
+                      
+                      {subjectsOffered.length === 0 ? (
+                        <View className="p-5 items-center" style={{ backgroundColor: COLORS.white }}>
+                          <Ionicons name="search-outline" size={40} color="#ccc" />
+                          <Text className="font-montserrat text-gray-400 mt-2" style={{ fontSize: fontSize }}>
+                            {searchQuery ? 'No subjects found' : 'No subjects available'}
+                          </Text>
+                        </View>
+                      ) : (
+                        subjectsOffered.map((subject, index) => {
+                          const isAdded = locallyAddedSubjects.some(p => p.schedId === subject.schedId);
+                          const isRegistered = preregisteredSubjects.some(p => p.schedId === subject.schedId);
+                          const statusOpen = subject.slot_no > 0;
+                          
+                          return (
+                            <View 
+                              key={subject.schedId || index} 
+                              className="flex-row"
+                              style={{ backgroundColor: index % 2 === 0 ? COLORS.white : COLORS.lightGreen, borderTopWidth: 1, borderColor: COLORS.green }}
+                            >
+                              <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 40 }}>
+                                {(currentPage - 1) * itemsPerPage + index + 1}
+                              </Text>
+                              <View className="p-2 items-center justify-center" style={{ width: 80 }}>
+                                <View 
+                                  className="px-2 py-1 rounded"
+                                  style={{ backgroundColor: statusOpen ? COLORS.green : '#d9534f' }}
+                                >
+                                  <Text className="font-montserrat-bold text-white" style={{ fontSize: fontSize - 2 }}>
+                                    {statusOpen ? 'OPEN' : 'CLOSED'}
+                                  </Text>
+                                </View>
+                              </View>
+                              <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 180 }}>{subject.subject_code}</Text>
+                              <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 100 }}>{subject.section}</Text>
+                              <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 120 }}>{subject.schedule || 'TBA'}</Text>
+                              <View className="p-2 items-center justify-center" style={{ width: 80 }}>
+                                <TouchableOpacity
+                                  disabled={isAdded || isRegistered || !statusOpen}
+                                  onPress={() => addCourse(subject)}
+                                  className="px-2 py-1 rounded"
+                                  style={{ backgroundColor: isRegistered ? '#5cb85c' : isAdded ? COLORS.gold : (!statusOpen ? '#9ca3af' : COLORS.green) }}
+                                >
+                                  <Text className="font-montserrat-bold text-white" style={{ fontSize: fontSize - 2 }}>
+                                    {isRegistered ? '✓ REG' : isAdded ? 'ADDED' : 'ADD'}
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          );
+                        })
+                      )}
+                    </View>
+                  </ScrollView>
+                )}
 
                 {/* Pagination */}
                 <View className="mt-4" style={{ gap: 10 }}>
                   <Text className="font-montserrat text-gray-600" style={{ fontSize: fontSize }}>
-                    Showing 1 to 5 of 7,057 entries
+                    Showing {totalEntries > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} to {Math.min(currentPage * itemsPerPage, totalEntries)} of {totalEntries} entries
                   </Text>
                   <View className="flex-row flex-wrap" style={{ gap: 4 }}>
-                    <TouchableOpacity 
-                      className="px-3 py-1.5 rounded"
-                      style={{ backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.green }}
-                    >
-                      <Text className="font-montserrat" style={{ fontSize: fontSize, color: COLORS.green }}>Previous</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      className="px-3 py-1.5 rounded"
-                      style={{ backgroundColor: COLORS.green }}
-                    >
-                      <Text className="font-montserrat-bold text-white" style={{ fontSize: fontSize }}>1</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      className="px-3 py-1.5 rounded"
-                      style={{ backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.green }}
-                    >
-                      <Text className="font-montserrat" style={{ fontSize: fontSize, color: COLORS.green }}>2</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      className="px-3 py-1.5 rounded"
-                      style={{ backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.green }}
-                    >
-                      <Text className="font-montserrat" style={{ fontSize: fontSize, color: COLORS.green }}>3</Text>
-                    </TouchableOpacity>
-                    <Text className="font-montserrat self-center" style={{ fontSize: fontSize, color: COLORS.green }}>...</Text>
-                    <TouchableOpacity 
-                      className="px-3 py-1.5 rounded"
-                      style={{ backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.green }}
-                    >
-                      <Text className="font-montserrat" style={{ fontSize: fontSize, color: COLORS.green }}>Next</Text>
-                    </TouchableOpacity>
+                    {renderPagination()}
                   </View>
                 </View>
               </View>

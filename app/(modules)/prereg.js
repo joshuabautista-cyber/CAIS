@@ -9,6 +9,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'http://192.168.107.151:8000/api';
 
+// University Colors
+const COLORS = {
+  green: '#008000',
+  gold: '#FFD700',
+  white: '#FFFFFF',
+  lightGold: '#FFF8DC',
+  darkGreen: '#006400',
+  lightGreen: '#E8F5E9',
+};
+
 const Prereg = () => {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -16,13 +26,17 @@ const Prereg = () => {
   // Responsive breakpoints
   const isLandscape = width > height;
   const isTablet = width >= 768;
-  
+  const isSmallPhone = width < 375;
+
   // Responsive values
-  const logoSize = isLandscape ? (isTablet ? 100 : 90) : 120;
-  const logoTop = isLandscape ? -50 : -60;
-  const cardHeight = isLandscape ? '90%' : '85%';
-  const headerMarginTop = isLandscape ? 60 : 80;
-  const titleSize = isTablet ? 'text-2xl' : 'text-lg';
+  const logoSize = isLandscape ? (isTablet ? 100 : 80) : (isTablet ? 140 : isSmallPhone ? 100 : 120);
+  const logoTop = isLandscape ? 20 : (isTablet ? 50 : 67);
+  const logoLeft = isLandscape ? 20 : 30;
+  const cardHeight = isLandscape ? '85%' : '85%';
+  const paddingHorizontal = isTablet ? 24 : (isSmallPhone ? 12 : 16);
+  const headerPaddingTop = isLandscape ? 20 : (logoSize / 2 + 30);
+  const titleSize = isTablet ? 22 : (isSmallPhone ? 16 : 18);
+  const fontSize = isTablet ? 14 : (isSmallPhone ? 10 : 12);
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
@@ -184,11 +198,16 @@ const Prereg = () => {
     pages.push(
       <TouchableOpacity
         key="prev"
-        className={`rounded border px-2.5 py-1 ${currentPage === 1 ? 'bg-gray-300 border-gray-300' : 'bg-white border-gray-300'}`}
+        className="px-2.5 py-1 rounded"
+        style={{ 
+          backgroundColor: currentPage === 1 ? '#d1d5db' : COLORS.white, 
+          borderWidth: 1, 
+          borderColor: currentPage === 1 ? '#d1d5db' : '#d1d5db' 
+        }}
         disabled={currentPage === 1}
         onPress={() => setCurrentPage(currentPage - 1)}
       >
-        <Text className="font-montserrat text-[11px] text-gray-800">Previous</Text>
+        <Text className="font-montserrat" style={{ fontSize: fontSize - 1, color: '#374151' }}>Previous</Text>
       </TouchableOpacity>
     );
 
@@ -199,23 +218,29 @@ const Prereg = () => {
       pages.push(
         <TouchableOpacity
           key={i}
-          className={`rounded border px-2.5 py-1 ${currentPage === i ? 'bg-[#008000] border-[#008000]' : 'bg-white border-gray-300'}`}
+          className="px-2.5 py-1 rounded"
+          style={{ 
+            backgroundColor: currentPage === i ? COLORS.green : COLORS.white, 
+            borderWidth: 1, 
+            borderColor: currentPage === i ? COLORS.green : '#d1d5db' 
+          }}
           onPress={() => setCurrentPage(i)}
         >
-          <Text className={`font-montserrat text-[11px] ${currentPage === i ? 'text-white' : 'text-gray-800'}`}>{i}</Text>
+          <Text className="font-montserrat" style={{ fontSize: fontSize - 1, color: currentPage === i ? COLORS.white : '#374151' }}>{i}</Text>
         </TouchableOpacity>
       );
     }
 
     if (endPage < totalPages) {
-      pages.push(<Text key="dots" className="font-montserrat self-center text-[11px] text-gray-800">...</Text>);
+      pages.push(<Text key="dots" className="font-montserrat self-center" style={{ fontSize: fontSize - 1, color: '#374151' }}>...</Text>);
       pages.push(
         <TouchableOpacity
           key={totalPages}
-          className="rounded border border-gray-300 bg-white px-2.5 py-1"
+          className="px-2.5 py-1 rounded"
+          style={{ backgroundColor: COLORS.white, borderWidth: 1, borderColor: '#d1d5db' }}
           onPress={() => setCurrentPage(totalPages)}
         >
-          <Text className="font-montserrat text-[11px] text-gray-800">{totalPages}</Text>
+          <Text className="font-montserrat" style={{ fontSize: fontSize - 1, color: '#374151' }}>{totalPages}</Text>
         </TouchableOpacity>
       );
     }
@@ -223,11 +248,16 @@ const Prereg = () => {
     pages.push(
       <TouchableOpacity
         key="next"
-        className={`rounded border px-2.5 py-1 ${currentPage === totalPages ? 'bg-gray-300 border-gray-300' : 'bg-white border-gray-300'}`}
+        className="px-2.5 py-1 rounded"
+        style={{ 
+          backgroundColor: currentPage === totalPages ? '#d1d5db' : COLORS.white, 
+          borderWidth: 1, 
+          borderColor: currentPage === totalPages ? '#d1d5db' : '#d1d5db' 
+        }}
         disabled={currentPage === totalPages}
         onPress={() => setCurrentPage(currentPage + 1)}
       >
-        <Text className="font-montserrat text-[11px] text-gray-800">Next</Text>
+        <Text className="font-montserrat" style={{ fontSize: fontSize - 1, color: '#374151' }}>Next</Text>
       </TouchableOpacity>
     );
 
@@ -237,12 +267,12 @@ const Prereg = () => {
   if (loading) {
     return (
       <LinearGradient
-        colors={['#008000', '#006400', '#004d00']}
+        colors={[COLORS.green, COLORS.darkGreen]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
+        end={{ x: 1, y: 1 }}
         className="flex-1 justify-center items-center"
       >
-        <ActivityIndicator size="large" color="#ffffff" />
+        <ActivityIndicator size="large" color={COLORS.white} />
         <Text className="font-montserrat text-white mt-4">Loading...</Text>
       </LinearGradient>
     );
@@ -250,232 +280,317 @@ const Prereg = () => {
 
   return (
     <LinearGradient
-      colors={['#008000', '#006400', '#004d00']}
+      colors={[COLORS.green, COLORS.darkGreen]}
       start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
+      end={{ x: 1, y: 1 }}
       className="flex-1"
     >
-      <View 
-        className="absolute bottom-0 w-full rounded-t-3xl bg-white"
-        style={{ height: cardHeight }}
-      >
+      <View className="flex-1">
         {/* Logo */}
         <View 
-          className="absolute z-10 rounded-full bg-white shadow-lg"
+          className="absolute z-10 rounded-full bg-white"
           style={{
-            left: 30,
             top: logoTop,
+            left: logoLeft,
             width: logoSize,
             height: logoSize,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 6,
+            elevation: 8,
           }}
         >
           <Image 
             source={clsuLogoGreen} 
             style={{ width: logoSize, height: logoSize, borderRadius: logoSize / 2 }}
+            resizeMode="cover"
           />
         </View>
 
-        {/* Header */}
-        <View className="items-center justify-center px-5" style={{ marginTop: headerMarginTop }}>
-          <Text className={`font-montserrat-bold ${titleSize} text-center text-[#008000]`}>
-            COURSE PREREGISTRATION
-          </Text>
-          <Text className="mt-1 text-center font-montserrat text-sm text-gray-600">
-            2ND SEMESTER 2025-2026
-          </Text>
-          
-          <View className="mt-4 w-full flex-row rounded-md bg-gray-100 p-3">
-            <Text className="font-montserrat-bold text-xs text-red-600">Note: </Text>
-            <Text className="font-montserrat flex-1 text-xs text-gray-800">
-              Preregistration is for slot monitoring only. Select courses from the list below.
-            </Text>
-          </View>
-        </View>
-
-        {/* Content */}
-        <ScrollView 
-          className="flex-1 px-5"
-          style={{ marginTop: isLandscape ? 12 : 20 }}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        {/* Main Content Container */}
+        <View 
+          className="absolute bottom-0 w-full rounded-t-[30px] bg-white"
+          style={{ 
+            height: cardHeight,
+            paddingTop: headerPaddingTop,
+            paddingHorizontal: paddingHorizontal,
+            paddingBottom: insets.bottom,
+          }}
         >
-          {/* Locally Added Courses (Pending) */}
-          {locallyAddedSubjects.length > 0 && (
-            <View className="mb-5 rounded-xl overflow-hidden shadow-md shadow-gray-400 bg-yellow-50 p-4 border-2 border-yellow-300">
-              <View className="flex-row justify-between items-center mb-3">
-                <Text className="font-montserrat-bold text-xs text-gray-800">PENDING REGISTRATION ({locallyAddedSubjects.length})</Text>
-                <TouchableOpacity
-                  disabled={registering['all']}
-                  onPress={submitAllRegistrations}
-                  className={`px-4 py-2 rounded-lg ${registering['all'] ? 'bg-gray-400' : 'bg-[#008000]'}`}
-                >
-                  <Text className="font-montserrat-bold text-[11px] text-white">
-                    {registering['all'] ? 'REGISTERING...' : 'REGISTER ALL'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Header */}
+            <View className="mb-4">
+              <Text 
+                className="font-montserrat-bold text-center"
+                style={{ fontSize: titleSize, color: COLORS.green }}
+              >
+                COURSE PREREGISTRATION
+              </Text>
+              <Text className="font-montserrat text-center text-gray-600 mt-1" style={{ fontSize: fontSize }}>
+                2ND SEMESTER 2025-2026
+              </Text>
               
-              <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                <View className="border border-yellow-400 rounded-md min-w-[500px] overflow-hidden">
-                  <View className="flex-row bg-yellow-200 border-b border-yellow-400">
-                    <Text className="font-montserrat-bold p-2.5 text-[11px] text-center text-black w-[40px]">#</Text>
-                    <Text className="font-montserrat-bold p-2.5 text-[11px] text-center text-black w-[100px]">CODE</Text>
-                    <Text className="font-montserrat-bold p-2.5 text-[11px] text-center text-black flex-1">TITLE</Text>
-                    <Text className="font-montserrat-bold p-2.5 text-[11px] text-center text-black w-[80px]">SECTION</Text>
-                  </View>
-                  {locallyAddedSubjects.map((subject, index) => (
-                    <View key={`local-${subject.schedId}`} className="flex-row border-b border-yellow-300 bg-white">
-                      <Text className="font-montserrat p-2.5 text-[11px] text-center text-gray-800 w-[40px]">{index + 1}</Text>
-                      <Text className="font-montserrat p-2.5 text-[11px] text-center text-gray-800 w-[100px]">{subject.subject_code}</Text>
-                      <Text className="font-montserrat p-2.5 text-[11px] text-gray-800 flex-1" numberOfLines={2}>{subject.subject_title}</Text>
-                      <Text className="font-montserrat p-2.5 text-[11px] text-center text-gray-800 w-[80px]">{subject.section}</Text>
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Preregistered Subjects */}
-          <View className="mb-5 rounded-xl overflow-hidden shadow-md shadow-gray-400 bg-[#f0f7f0] p-4">
-            <View className="mb-4 rounded-md bg-[#3bbe55] p-2.5">
-              <Text className="font-montserrat-bold text-xs text-white">YOUR PREREGISTERED COURSES</Text>
-            </View>
-
-            <View className="mb-3 flex-row items-center gap-2 rounded-md bg-[#e8f5e9] p-2">
-              <Ionicons name="swap-horizontal" size={14} color="#008000" />
-              <Text className="font-montserrat flex-1 text-[10px] text-[#008000]">Swipe left or right to see more</Text>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-              <View className="overflow-hidden rounded-md border border-gray-300 min-w-[500px]">
-                <View className="flex-row bg-[#3bbe55]">
-                  <Text className="font-montserrat-bold w-[40px] p-2.5 text-center text-[11px] text-white">#</Text>
-                  <Text className="font-montserrat-bold w-[100px] p-2.5 text-center text-[11px] text-white">CODE</Text>
-                  <Text className="font-montserrat-bold flex-1 p-2.5 text-center text-[11px] text-white">TITLE</Text>
-                  <Text className="font-montserrat-bold w-[80px] p-2.5 text-center text-[11px] text-white">SECTION</Text>
-                </View>
-                
-                {preregisteredSubjects.length === 0 ? (
-                  <View className="items-center bg-white p-5">
-                    <Ionicons name="document-outline" size={40} color="#ccc" />
-                    <Text className="font-montserrat text-xs text-gray-400 mt-2">No courses preregistered yet</Text>
-                  </View>
-                ) : (
-                  preregisteredSubjects.map((subject, index) => (
-                    <View key={`prereg-${subject.prereg_id}-${index}`} className={`flex-row border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                      <Text className="font-montserrat w-[40px] p-2.5 text-center text-[11px] text-gray-800">{index + 1}</Text>
-                      <Text className="font-montserrat w-[100px] p-2.5 text-center text-[11px] text-gray-800">{subject.subject_code || 'N/A'}</Text>
-                      <Text className="font-montserrat flex-1 p-2.5 text-[11px] text-gray-800" numberOfLines={2}>{subject.subject_title || 'N/A'}</Text>
-                      <Text className="font-montserrat w-[80px] p-2.5 text-center text-[11px] text-gray-800">{subject.section}</Text>
-                    </View>
-                  ))
-                )}
+              <View 
+                className="mt-4 p-3 rounded-lg flex-row"
+                style={{ backgroundColor: '#f3f4f6' }}
+              >
+                <Text className="font-montserrat-bold" style={{ fontSize: fontSize, color: '#dc2626' }}>Note: </Text>
+                <Text className="font-montserrat flex-1" style={{ fontSize: fontSize, color: '#374151' }}>
+                  Preregistration is for slot monitoring only. Select courses from the list below.
+                </Text>
               </View>
-            </ScrollView>
-          </View>
-
-          {/* List of Subjects Offered */}
-          <View className="rounded-xl overflow-hidden shadow-md shadow-gray-400 bg-[#fffbeb] p-4">
-            <View className="mb-4 rounded-md bg-[#FFD700] p-2.5">
-              <Text className="font-montserrat-bold text-xs text-[#333]">LIST OF SUBJECTS OFFERED</Text>
             </View>
 
-            {/* Search Bar */}
-            <View className="mb-4 flex-row items-center rounded-xl border-2 border-gray-200 bg-white px-4">
-              <Ionicons name="search" size={20} color="#9ca3af" />
-              <TextInput
-                className="ml-3 flex-1 py-3 font-montserrat text-sm text-black"
-                placeholder="Search by code or title..."
-                placeholderTextColor="#9ca3af"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-            </View>
+            {/* Content Layout */}
+            <View style={{ gap: isTablet ? 24 : 16 }}>
 
-            {/* Mobile Info Banner */}
-            <View className="mb-4 flex-row items-center gap-2 rounded-md bg-[#e8f5e9] p-2">
-              <Ionicons name="swap-horizontal" size={14} color="#008000" />
-              <Text className="font-montserrat flex-1 text-[10px] text-[#008000]">Swipe left or right to view all columns</Text>
-            </View>
-
-            {/* Loading */}
-            {loadingSubjects && (
-              <View className="py-5 items-center">
-                <ActivityIndicator size="small" color="#008000" />
-              </View>
-            )}
-
-            {/* Subjects Table */}
-            {!loadingSubjects && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                <View className="min-w-[700px] rounded-md border border-gray-300 overflow-hidden">
-                  <View className="flex-row bg-[#3bbe55]">
-                    <Text className="font-montserrat-bold w-[40px] p-2.5 text-center text-[11px] text-white">#</Text>
-                    <Text className="font-montserrat-bold w-[70px] p-2.5 text-center text-[11px] text-white">STATUS</Text>
-                    <Text className="font-montserrat-bold w-[100px] p-2.5 text-center text-[11px] text-white">CODE</Text>
-                    <Text className="font-montserrat-bold w-[80px] p-2.5 text-center text-[11px] text-white">SECTION</Text>
-                    <Text className="font-montserrat-bold flex-1 p-2.5 text-center text-[11px] text-white">TITLE</Text>
-                    <Text className="font-montserrat-bold w-[70px] p-2.5 text-center text-[11px] text-white">ACTION</Text>
-                  </View>
-                  
-                  {subjectsOffered.length === 0 ? (
-                    <View className="p-5 items-center bg-white">
-                      <Ionicons name="search-outline" size={40} color="#ccc" />
-                      <Text className="font-montserrat text-gray-400 text-xs mt-2">
-                        {searchQuery ? 'No courses found' : 'No courses available'}
+              {/* Locally Added Courses (Pending) - Only show when there are pending items */}
+              {locallyAddedSubjects.length > 0 && (
+                <View 
+                  className="p-4 rounded-xl"
+                  style={{ backgroundColor: COLORS.lightGold, borderWidth: 1, borderColor: COLORS.gold }}
+                >
+                  <View className="flex-row justify-between items-center mb-4">
+                    <View 
+                      className="p-2.5 rounded-lg flex-1 mr-2"
+                      style={{ backgroundColor: COLORS.gold }}
+                    >
+                      <Text 
+                        className="font-montserrat-bold text-center"
+                        style={{ fontSize: fontSize, color: COLORS.green }}
+                      >
+                        PENDING REGISTRATION ({locallyAddedSubjects.length})
                       </Text>
                     </View>
-                  ) : (
-                    subjectsOffered.map((subject, index) => {
-                      const isAdded = locallyAddedSubjects.some(p => p.schedId === subject.schedId);
-                      const isRegistered = preregisteredSubjects.some(p => p.schedId === subject.schedId);
-                      
-                      return (
-                        <View key={subject.schedId || index} className={`flex-row border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                          <Text className="font-montserrat w-[40px] p-2.5 text-center text-[11px] text-gray-800">
-                            {(currentPage - 1) * itemsPerPage + index + 1}
-                          </Text>
-                          <View className="w-[70px] justify-center items-center p-1">
-                            <View className={`px-2 py-0.5 rounded ${subject.slot_no > 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-                              <Text className={`font-montserrat-bold text-[9px] ${subject.slot_no > 0 ? 'text-green-700' : 'text-red-700'}`}>
-                                {subject.slot_no > 0 ? 'OPEN' : 'CLOSED'}
-                              </Text>
-                            </View>
-                          </View>
-                          <Text className="font-montserrat w-[100px] p-2.5 text-center text-[11px] text-gray-800">{subject.subject_code}</Text>
-                          <Text className="font-montserrat w-[80px] p-2.5 text-center text-[11px] text-gray-800">{subject.section}</Text>
-                          <Text className="font-montserrat flex-1 p-2.5 text-[11px] text-gray-800" numberOfLines={2}>{subject.subject_title}</Text>
-                          <View className="w-[70px] justify-center items-center p-1">
-                            <TouchableOpacity
-                              disabled={isAdded || isRegistered}
-                              onPress={() => addCourse(subject)}
-                              className={`px-2 py-1 rounded ${isRegistered ? 'bg-green-300' : isAdded ? 'bg-yellow-300' : 'bg-[#008000]'}`}
-                            >
-                              <Text className={`font-montserrat-bold text-[8px] ${isRegistered || isAdded ? 'text-gray-600' : 'text-white'}`}>
-                                {isRegistered ? '✓ REG' : isAdded ? 'PENDING' : 'ADD'}
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      );
-                    })
-                  )}
-                </View>
-              </ScrollView>
-            )}
+                    <TouchableOpacity
+                      disabled={registering['all']}
+                      onPress={submitAllRegistrations}
+                      className="px-4 py-2.5 rounded-lg"
+                      style={{ backgroundColor: registering['all'] ? '#9ca3af' : COLORS.green }}
+                    >
+                      <Text className="font-montserrat-bold text-white" style={{ fontSize: fontSize - 1 }}>
+                        {registering['all'] ? 'REGISTERING...' : 'REGISTER ALL'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
 
-            {/* Pagination */}
-            <View className="mt-4 gap-2.5">
-              <Text className="font-montserrat text-[11px] text-gray-600">
-                Showing {totalEntries > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} to {Math.min(currentPage * itemsPerPage, totalEntries)} of {totalEntries} entries
-              </Text>
-              <View className="flex-row flex-wrap gap-1">
-                {renderPagination()}
+                  <View className="rounded-lg overflow-hidden" style={{ borderWidth: 1, borderColor: COLORS.green }}>
+                    <View className="flex-row" style={{ backgroundColor: COLORS.green }}>
+                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, flex: 0.5 }}>#</Text>
+                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, flex: 1.5 }}>CODE</Text>
+                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, flex: 2 }}>TITLE</Text>
+                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, flex: 1 }}>SECTION</Text>
+                    </View>
+                    {locallyAddedSubjects.map((subject, index) => (
+                      <View key={`local-${subject.schedId}`} className="flex-row" style={{ backgroundColor: index % 2 === 0 ? COLORS.white : COLORS.lightGreen, borderTopWidth: 1, borderColor: COLORS.green }}>
+                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, flex: 0.5 }}>{index + 1}</Text>
+                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, flex: 1.5 }}>{subject.subject_code}</Text>
+                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, flex: 2 }} numberOfLines={2}>{subject.subject_title}</Text>
+                        <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, flex: 1 }}>{subject.section}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Preregistered Subjects Section */}
+              <View 
+                className="p-4 rounded-xl"
+                style={{ backgroundColor: COLORS.lightGold, borderWidth: 1, borderColor: COLORS.gold }}
+              >
+                <View 
+                  className="p-2.5 mb-4 rounded-lg"
+                  style={{ backgroundColor: COLORS.gold }}
+                >
+                  <Text 
+                    className="font-montserrat-bold text-center"
+                    style={{ fontSize: fontSize, color: COLORS.green }}
+                  >
+                    YOUR PREREGISTERED COURSES
+                  </Text>
+                </View>
+
+                {/* Mobile Info Banner */}
+                <View 
+                  className="flex-row p-2 rounded-lg mb-4 items-center"
+                  style={{ backgroundColor: COLORS.lightGreen, borderWidth: 1, borderColor: COLORS.green }}
+                >
+                  <Ionicons name="swap-horizontal" size={14} color={COLORS.green} />
+                  <Text className="font-montserrat flex-1 ml-2" style={{ fontSize: fontSize - 1, color: COLORS.green }}>
+                    Swipe left or right to see more
+                  </Text>
+                </View>
+
+                {/* Table */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+                  <View className="rounded-lg overflow-hidden" style={{ minWidth: 500, borderWidth: 1, borderColor: COLORS.green }}>
+                    <View className="flex-row" style={{ backgroundColor: COLORS.green }}>
+                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 40 }}>#</Text>
+                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 100 }}>CODE</Text>
+                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, flex: 1 }}>TITLE</Text>
+                      <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 80 }}>SECTION</Text>
+                    </View>
+                    
+                    {preregisteredSubjects.length === 0 ? (
+                      <View className="p-5 items-center" style={{ backgroundColor: COLORS.white }}>
+                        <Ionicons name="document-outline" size={24} color={COLORS.gold} />
+                        <Text className="font-montserrat text-gray-400 mt-2" style={{ fontSize: fontSize }}>
+                          No courses preregistered yet
+                        </Text>
+                      </View>
+                    ) : (
+                      preregisteredSubjects.map((subject, index) => (
+                        <View key={`prereg-${subject.prereg_id || index}`} className="flex-row" style={{ backgroundColor: index % 2 === 0 ? COLORS.white : COLORS.lightGreen, borderTopWidth: 1, borderColor: COLORS.green }}>
+                          <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 40 }}>{index + 1}</Text>
+                          <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 100 }}>{subject.subject_code || 'N/A'}</Text>
+                          <Text className="font-montserrat p-2.5 text-gray-800" style={{ fontSize: fontSize, flex: 1 }} numberOfLines={2}>{subject.subject_title || 'N/A'}</Text>
+                          <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 80 }}>{subject.section}</Text>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </ScrollView>
               </View>
+
+              {/* Subjects Offered Section */}
+              <View 
+                className="p-4 rounded-xl"
+                style={{ backgroundColor: COLORS.lightGreen, borderWidth: 1, borderColor: COLORS.green }}
+              >
+                <View 
+                  className="p-2.5 mb-4 rounded-lg"
+                  style={{ backgroundColor: COLORS.gold }}
+                >
+                  <Text 
+                    className="font-montserrat-bold text-center"
+                    style={{ fontSize: fontSize, color: COLORS.green }}
+                  >
+                    LIST OF SUBJECTS OFFERED
+                  </Text>
+                </View>
+
+                {/* Search Bar */}
+                <View className="mb-4">
+                  <View 
+                    className="flex-row items-center rounded-lg px-3"
+                    style={{ backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.green }}
+                  >
+                    <Ionicons name="search" size={18} color={COLORS.green} />
+                    <TextInput
+                      className="font-montserrat flex-1 p-2.5"
+                      style={{ fontSize: fontSize }}
+                      placeholder="Search subjects..."
+                      placeholderTextColor="#999"
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                    />
+                  </View>
+                </View>
+
+                {/* Mobile Info Banner */}
+                <View 
+                  className="flex-row p-2 rounded-lg mb-4 items-center"
+                  style={{ backgroundColor: COLORS.lightGold, borderWidth: 1, borderColor: COLORS.gold }}
+                >
+                  <Ionicons name="information-circle" size={16} color={COLORS.green} />
+                  <Text className="font-montserrat flex-1 ml-2" style={{ fontSize: fontSize - 1, color: COLORS.green }}>
+                    Swipe left/right to view all columns
+                  </Text>
+                </View>
+
+                {/* Loading */}
+                {loadingSubjects && (
+                  <View className="py-5 items-center">
+                    <ActivityIndicator size="small" color={COLORS.green} />
+                  </View>
+                )}
+
+                {/* Subjects Table */}
+                {!loadingSubjects && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+                    <View 
+                      className="rounded-lg overflow-hidden"
+                      style={{ minWidth: isTablet ? 700 : 600, borderWidth: 1, borderColor: COLORS.green }}
+                    >
+                      <View className="flex-row" style={{ backgroundColor: COLORS.green }}>
+                        <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 40 }}>#</Text>
+                        <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 80 }}>STATUS</Text>
+                        <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 100 }}>CODE</Text>
+                        <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 80 }}>SECTION</Text>
+                        <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, flex: 1 }}>TITLE</Text>
+                        <Text className="font-montserrat-bold p-2.5 text-center text-white" style={{ fontSize: fontSize, width: 80 }}>ACTION</Text>
+                      </View>
+                      
+                      {subjectsOffered.length === 0 ? (
+                        <View className="p-5 items-center" style={{ backgroundColor: COLORS.white }}>
+                          <Ionicons name="search-outline" size={40} color="#ccc" />
+                          <Text className="font-montserrat text-gray-400 mt-2" style={{ fontSize: fontSize }}>
+                            {searchQuery ? 'No subjects found' : 'No subjects available'}
+                          </Text>
+                        </View>
+                      ) : (
+                        subjectsOffered.map((subject, index) => {
+                          const isAdded = locallyAddedSubjects.some(p => p.schedId === subject.schedId);
+                          const isRegistered = preregisteredSubjects.some(p => p.schedId === subject.schedId);
+                          const statusOpen = subject.slot_no > 0;
+                          
+                          return (
+                            <View 
+                              key={subject.schedId || index} 
+                              className="flex-row"
+                              style={{ backgroundColor: index % 2 === 0 ? COLORS.white : COLORS.lightGreen, borderTopWidth: 1, borderColor: COLORS.green }}
+                            >
+                              <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 40 }}>
+                                {(currentPage - 1) * itemsPerPage + index + 1}
+                              </Text>
+                              <View className="p-2 items-center justify-center" style={{ width: 80 }}>
+                                <View 
+                                  className="px-2 py-1 rounded"
+                                  style={{ backgroundColor: statusOpen ? COLORS.green : '#d9534f' }}
+                                >
+                                  <Text className="font-montserrat-bold text-white" style={{ fontSize: fontSize - 2 }}>
+                                    {statusOpen ? 'OPEN' : 'CLOSED'}
+                                  </Text>
+                                </View>
+                              </View>
+                              <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 100 }}>{subject.subject_code}</Text>
+                              <Text className="font-montserrat p-2.5 text-center text-gray-800" style={{ fontSize: fontSize, width: 80 }}>{subject.section}</Text>
+                              <Text className="font-montserrat p-2.5 text-gray-800" style={{ fontSize: fontSize, flex: 1 }} numberOfLines={2}>{subject.subject_title}</Text>
+                              <View className="p-2 items-center justify-center" style={{ width: 80 }}>
+                                <TouchableOpacity
+                                  disabled={isAdded || isRegistered || !statusOpen}
+                                  onPress={() => addCourse(subject)}
+                                  className="px-2 py-1 rounded"
+                                  style={{ backgroundColor: isRegistered ? '#5cb85c' : isAdded ? COLORS.gold : (!statusOpen ? '#9ca3af' : COLORS.green) }}
+                                >
+                                  <Text className="font-montserrat-bold text-white" style={{ fontSize: fontSize - 2 }}>
+                                    {isRegistered ? '✓ REG' : isAdded ? 'ADDED' : 'ADD'}
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          );
+                        })
+                      )}
+                    </View>
+                  </ScrollView>
+                )}
+
+                {/* Pagination */}
+                <View className="mt-4" style={{ gap: 10 }}>
+                  <Text className="font-montserrat text-gray-600" style={{ fontSize: fontSize }}>
+                    Showing {totalEntries > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} to {Math.min(currentPage * itemsPerPage, totalEntries)} of {totalEntries} entries
+                  </Text>
+                  <View className="flex-row flex-wrap" style={{ gap: 4 }}>
+                    {renderPagination()}
+                  </View>
+                </View>
+              </View>
+
             </View>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </View>
       </View>
     </LinearGradient>
   );
