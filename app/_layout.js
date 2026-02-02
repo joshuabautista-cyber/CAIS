@@ -38,9 +38,17 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Hide splash screen once fonts are loaded
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
+    async function hideSplash() {
+      if (fontsLoaded) {
+        try {
+          await SplashScreen.hideAsync();
+        } catch (e) {
+          // Splash screen already hidden or not available
+          console.log('Splash screen hide error (can be ignored):', e);
+        }
+      }
     }
+    hideSplash();
   }, [fontsLoaded]);
 
   // Keep splash screen visible while fonts load
