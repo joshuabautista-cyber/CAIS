@@ -12,7 +12,9 @@ cssInterop(LinearGradient, {
 });
 
 // Prevent the splash screen from auto-hiding before asset loading is complete
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Ignore errors if splash screen is not available
+});
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -38,17 +40,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Hide splash screen once fonts are loaded
-    async function hideSplash() {
-      if (fontsLoaded) {
-        try {
-          await SplashScreen.hideAsync();
-        } catch (e) {
-          // Splash screen already hidden or not available
-          console.log('Splash screen hide error (can be ignored):', e);
-        }
-      }
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => {
+        // Ignore errors - splash screen may already be hidden
+      });
     }
-    hideSplash();
   }, [fontsLoaded]);
 
   // Keep splash screen visible while fonts load
@@ -91,7 +87,8 @@ export default function RootLayout() {
         name="(settings)" 
         options={{ 
           headerShown: false,
-          presentation: 'modal', // Makes it slide up like a modal
+          presentation: 'fullScreenModal',
+          contentStyle: { backgroundColor: 'transparent' },
         }} 
       />
     </Stack>
