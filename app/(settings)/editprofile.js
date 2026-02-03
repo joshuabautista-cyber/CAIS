@@ -1,10 +1,14 @@
-import { View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, useWindowDimensions } from 'react-native';
+import { View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { Text } from 'react-native';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+
+const API_URL = 'http://192.168.107.151:8000/api';
 
 const EditProfile = () => {
   const insets = useSafeAreaInsets();
@@ -18,6 +22,11 @@ const EditProfile = () => {
   // Responsive values
   const contentMaxWidth = isTablet ? 600 : '100%';
   const horizontalPadding = isTablet ? 40 : 24;
+
+  // Loading states
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [userId, setUserId] = useState(null);
 
   // Step management
   const [currentStep, setCurrentStep] = useState(1);
@@ -118,6 +127,119 @@ const EditProfile = () => {
 
   const [focusedField, setFocusedField] = useState('');
 
+  // Fetch user profile on mount
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      setLoading(true);
+      const storedUserId = await AsyncStorage.getItem('user_id');
+      
+      if (!storedUserId) {
+        Alert.alert('Error', 'User not logged in. Please login again.');
+        router.replace('/');
+        return;
+      }
+      
+      setUserId(storedUserId);
+      
+      const response = await axios.get(`${API_URL}/applicant-profile/user/${storedUserId}`);
+      
+      if (response.data.success && response.data.data) {
+        const profileData = response.data.data;
+        
+        // Map API data to form fields
+        setFormData(prev => ({
+          ...prev,
+          // Basic Information
+          firstname: profileData.firstname || '',
+          middlename: profileData.middlename || '',
+          lastname: profileData.lastname || '',
+          suffix: profileData.suffix || '',
+          student_mobile_contact: profileData.student_mobile_contact || '',
+          student_email: profileData.student_email || '',
+          course: profileData.course_program || prev.course,
+          
+          // Personal Details
+          civil_status: profileData.civil_status || '',
+          date_of_birth: profileData.date_of_birth || '',
+          place_of_birth: profileData.place_of_birth || '',
+          nationality: profileData.nationality || '',
+          sex: profileData.sex || '',
+          gender: profileData.gender || '',
+          religion_id: profileData.religion_id?.toString() || '',
+          birth_order: profileData.birth_order || '',
+          sibling_in_college: profileData.sibling_in_college || '',
+          sibling_college_graduate: profileData.sibling_college_graduate || '',
+          
+          // Address Information
+          permanent_address: profileData.permanent_address || '',
+          permanent_cluster: profileData.permanent_cluster || '',
+          zipcode: profileData.zipcode || '',
+          country: profileData.country || '',
+          clsu_address: profileData.clsu_address || '',
+          clsu_cluster: profileData.clsu_cluster || '',
+          clsu_zipcode: profileData.clsu_zipcode || '',
+          clsu_country: profileData.clsu_country || '',
+          
+          // Family Background
+          father_fname: profileData.father_fname || '',
+          father_mname: profileData.father_mname || '',
+          father_lname: profileData.father_lname || '',
+          father_contact: profileData.father_contact || '',
+          father_education: profileData.father_education || '',
+          father_occupation: profileData.father_occupation || '',
+          mother_fname: profileData.mother_fname || '',
+          mother_mname: profileData.mother_mname || '',
+          mother_lname: profileData.mother_lname || '',
+          mother_contact: profileData.mother_contact || '',
+          mother_education: profileData.mother_education || '',
+          mother_occupation: profileData.mother_occupation || '',
+          guardian_name: profileData.guardian_name || '',
+          guardian_contact: profileData.guardian_contact || '',
+          emergency_person: profileData.emergency_person || '',
+          
+          // Academic Background
+          elementary_school: profileData.elementary_school_address || '',
+          elementary_year: profileData.elementary_year || '',
+          elementary_address: profileData.e_address || '',
+          high_school: profileData.high_school_address || '',
+          high_school_year: profileData.high_school_year || '',
+          high_school_address: profileData.h_address || '',
+          senior_high_school: profileData.senior_high_address || '',
+          senior_high_year: profileData.senior_high_year || '',
+          senior_high_address: profileData.sh_address || '',
+          
+          // PWD/Handicap
+          disability: profileData.disability === 1 || profileData.disability === '1' || profileData.disability === 'Yes' ? 'Yes' : 'No',
+          disability_type: profileData.disability_type || '',
+          disability_proof: profileData.disability_proof || '',
+          
+          // Minority Group
+          indigenous: profileData.indigenous === 1 || profileData.indigenous === '1' || profileData.indigenous === 'Yes' ? 'Yes' : 'No',
+          indigenous_type: profileData.indigenous_type || '',
+          indigenous_proof: profileData.indigenous_proof || '',
+          
+          // Family Income
+          family_income: profileData.family_income || '',
+          itr: profileData.itr || '',
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      if (error.response?.status === 404) {
+        // Profile doesn't exist yet, use defaults
+        console.log('No profile found, using defaults');
+      } else {
+        Alert.alert('Error', 'Failed to load profile data. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateFormData = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -136,10 +258,132 @@ const EditProfile = () => {
     }
   };
 
-  const handleSubmit = () => {
-    Alert.alert('Success', 'Profile updated successfully', [
-      { text: 'OK', onPress: () => router.back() }
-    ]);
+  const handleSubmit = async () => {
+    if (!userId) {
+      Alert.alert('Error', 'User not logged in. Please login again.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      
+      // Prepare data for API
+      const profileData = {
+        user_id: parseInt(userId),
+        // Basic Information
+        firstname: formData.firstname,
+        middlename: formData.middlename,
+        lastname: formData.lastname,
+        suffix: formData.suffix,
+        student_mobile_contact: formData.student_mobile_contact,
+        student_email: formData.student_email,
+        course_program: formData.course,
+        
+        // Personal Details
+        civil_status: formData.civil_status,
+        date_of_birth: formData.date_of_birth,
+        place_of_birth: formData.place_of_birth,
+        nationality: formData.nationality,
+        sex: formData.sex,
+        gender: formData.gender,
+        religion_id: formData.religion_id ? parseInt(formData.religion_id) : null,
+        birth_order: formData.birth_order,
+        sibling_in_college: formData.sibling_in_college,
+        sibling_college_graduate: formData.sibling_college_graduate,
+        
+        // Address Information
+        permanent_address: formData.permanent_address,
+        permanent_cluster: formData.permanent_region,
+        zipcode: formData.zipcode,
+        country: formData.country,
+        clsu_address: formData.clsu_address,
+        clsu_cluster: formData.clsu_region,
+        clsu_zipcode: formData.clsu_zipcode,
+        clsu_country: formData.clsu_country,
+        
+        // Family Background
+        father_fname: formData.father_fname,
+        father_mname: formData.father_mname,
+        father_lname: formData.father_lname,
+        father_contact: formData.father_contact,
+        father_education: formData.father_education,
+        father_occupation: formData.father_occupation,
+        mother_fname: formData.mother_fname,
+        mother_mname: formData.mother_mname,
+        mother_lname: formData.mother_lname,
+        mother_contact: formData.mother_contact,
+        mother_education: formData.mother_education,
+        mother_occupation: formData.mother_occupation,
+        guardian_name: formData.guardian_name,
+        guardian_contact: formData.guardian_contact,
+        emergency_person: formData.emergency_person,
+        
+        // Academic Background
+        elementary_school_address: formData.elementary_school,
+        elementary_year: formData.elementary_year,
+        e_address: formData.elementary_address,
+        high_school_address: formData.high_school,
+        high_school_year: formData.high_school_year,
+        h_address: formData.high_school_address,
+        senior_high_address: formData.senior_high_school,
+        senior_high_year: formData.senior_high_year,
+        sh_address: formData.senior_high_address,
+        
+        // PWD/Handicap
+        disability: formData.disability === 'Yes' ? 1 : 0,
+        disability_type: formData.disability_type,
+        disability_proof: formData.disability_proof,
+        
+        // Minority Group
+        indigenous: formData.indigenous === 'Yes' ? 1 : 0,
+        indigenous_type: formData.indigenous_type,
+        indigenous_proof: formData.indigenous_proof,
+        
+        // Family Income
+        family_income: formData.family_income,
+        itr: formData.itr,
+      };
+      
+      const response = await axios.put(`${API_URL}/applicant-profile/user/${userId}`, profileData);
+      
+      if (response.data.success) {
+        Alert.alert('Success', 'Profile updated successfully!', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to update profile.');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      
+      if (error.response?.status === 404) {
+        // Profile doesn't exist, try to create it
+        try {
+          const createResponse = await axios.post(`${API_URL}/applicant-profile`, {
+            ...profileData,
+            user_id: parseInt(userId),
+          });
+          
+          if (createResponse.data.success) {
+            Alert.alert('Success', 'Profile created successfully!', [
+              { text: 'OK', onPress: () => router.back() }
+            ]);
+          }
+        } catch (createError) {
+          console.error('Error creating profile:', createError);
+          Alert.alert('Error', 'Failed to save profile. Please try again.');
+        }
+      } else if (error.response?.data?.errors) {
+        // Validation errors
+        const errors = error.response.data.errors;
+        const errorMessages = Object.values(errors).flat().join('\n');
+        Alert.alert('Validation Error', errorMessages);
+      } else {
+        Alert.alert('Error', 'Failed to update profile. Please try again.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Toggle same as permanent address
@@ -908,6 +1152,12 @@ const EditProfile = () => {
           paddingBottom: insets.bottom || 16
         }}
       >
+        {loading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color="#008000" />
+            <Text className="mt-4 font-montserrat-medium text-gray-600">Loading profile...</Text>
+          </View>
+        ) : (
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           className="flex-1"
@@ -956,6 +1206,7 @@ const EditProfile = () => {
                   className="mr-2 px-6 py-3 rounded-lg bg-gray-500"
                   onPress={handlePrevious}
                   activeOpacity={0.8}
+                  disabled={submitting}
                 >
                   <Text className="font-montserrat-semibold text-sm text-white">
                     Previous
@@ -976,13 +1227,23 @@ const EditProfile = () => {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  className="px-6 py-3 rounded-lg bg-[#008000]"
+                  className={`px-6 py-3 rounded-lg ${submitting ? 'bg-[#008000]/70' : 'bg-[#008000]'}`}
                   onPress={handleSubmit}
                   activeOpacity={0.8}
+                  disabled={submitting}
                 >
-                  <Text className="font-montserrat-semibold text-sm text-white">
-                    Submit
-                  </Text>
+                  {submitting ? (
+                    <View className="flex-row items-center">
+                      <ActivityIndicator size="small" color="white" />
+                      <Text className="ml-2 font-montserrat-semibold text-sm text-white">
+                        Saving...
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text className="font-montserrat-semibold text-sm text-white">
+                      Submit
+                    </Text>
+                  )}
                 </TouchableOpacity>
               )}
             </View>
@@ -991,6 +1252,7 @@ const EditProfile = () => {
             <View className="h-10" />
           </ScrollView>
         </KeyboardAvoidingView>
+        )}
       </View>
     </LinearGradient>
   );
