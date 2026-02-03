@@ -357,22 +357,7 @@ const EditProfile = () => {
       console.error('Error updating profile:', error);
       
       if (error.response?.status === 404) {
-        // Profile doesn't exist, try to create it
-        try {
-          const createResponse = await axios.post(`${API_URL}/applicant-profile`, {
-            ...profileData,
-            user_id: parseInt(userId),
-          });
-          
-          if (createResponse.data.success) {
-            Alert.alert('Success', 'Profile created successfully!', [
-              { text: 'OK', onPress: () => router.back() }
-            ]);
-          }
-        } catch (createError) {
-          console.error('Error creating profile:', createError);
-          Alert.alert('Error', 'Failed to save profile. Please try again.');
-        }
+        Alert.alert('Error', 'Profile not found. Please contact the administrator to set up your profile.');
       } else if (error.response?.data?.errors) {
         // Validation errors
         const errors = error.response.data.errors;

@@ -1,17 +1,29 @@
-import { View, Image, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
+import { View, Image, TouchableOpacity, ScrollView, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { Text } from 'react-native';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import clsuLogoGreen from '../../assets/images/clsuLogoGreen.png';
 import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+
+const API_URL = 'http://192.168.107.151:8000/api';
 
 const Profile = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
+  
+  // State for user data
+  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState({
+    fullName: '',
+    email: '',
+    userType: '',
+    birthdate: '',
+  });
   
   // Responsive breakpoints
   const isLandscape = width > height;
@@ -25,6 +37,59 @@ const Profile = () => {
   const titleSize = isTablet ? 'text-3xl' : 'text-2xl';
   const buttonPadding = isLandscape ? 12 : 14;
   const buttonGap = isLandscape ? 12 : 16;
+
+  // Fetch user profile data
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      setLoading(true);
+      const userId = await AsyncStorage.getItem('user_id');
+      
+      if (!userId) {
+        console.log('No user_id found');
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.get(`${API_URL}/applicant-profile/user/${userId}`);
+      
+      if (response.data.success && response.data.data) {
+        const profile = response.data.data;
+        
+        // Format full name
+        const middleInitial = profile.middlename ? `${profile.middlename.charAt(0)}.` : '';
+        const fullName = [profile.firstname, middleInitial, profile.lastname, profile.suffix]
+          .filter(Boolean)
+          .join(' ');
+        
+        // Format birthdate
+        let formattedBirthdate = 'N/A';
+        if (profile.date_of_birth) {
+          const date = new Date(profile.date_of_birth);
+          formattedBirthdate = date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+        }
+
+        setUserData({
+          fullName: fullName || 'N/A',
+          email: profile.student_email || 'N/A',
+          userType: 'STUDENT',
+          birthdate: formattedBirthdate,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      // Keep default values on error
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEditProfile = () => {
     router.push('/(settings)/editprofile');
@@ -103,11 +168,18 @@ const Profile = () => {
           </View>
 
           {/* User Info */}
-          <View className='items-center mt-5'>
-            <Text className={`font-montserrat-semibold ${isTablet ? 'text-2xl' : 'text-xl'} text-[#008000] py-1`}>Liane Jonyl A. Tomas</Text>
-            <Text className={`font-montserrat ${isTablet ? 'text-lg' : 'text-base'} text-[#008000] py-1`}>liane.tomas@clsu2.edu.ph</Text>
-            <Text className={`font-montserrat-medium ${isTablet ? 'text-lg' : 'text-base'} text-[#008000] py-1`}>STUDENT</Text>
-          </View>
+          {loading ? (
+            <View className='items-center mt-5 py-8'>
+              <ActivityIndicator size="large" color="#008000" />
+              <Text className='font-montserrat text-gray-500 mt-2'>Loading profile...</Text>
+            </View>
+          ) : (
+            <View className='items-center mt-5'>
+              <Text className={`font-montserrat-semibold ${isTablet ? 'text-2xl' : 'text-xl'} text-[#008000] py-1`}>{userData.fullName}</Text>
+              <Text className={`font-montserrat ${isTablet ? 'text-lg' : 'text-base'} text-[#008000] py-1`}>{userData.email}</Text>
+              <Text className={`font-montserrat-medium ${isTablet ? 'text-lg' : 'text-base'} text-[#008000] py-1`}>{userData.userType}</Text>
+            </View>
+          )}
 
           {/* Stay Info */}
           <View className='border-t border-b border-[#008000] flex-row justify-between items-center px-4 py-3 mt-5'>
@@ -117,7 +189,7 @@ const Profile = () => {
 
           {/* Birthdate */}
           <View className='items-center py-4'>
-            <Text className={`font-montserrat ${isTablet ? 'text-base' : 'text-sm'} text-[#008000]`}>September 1, 1939</Text>
+            <Text className={`font-montserrat ${isTablet ? 'text-base' : 'text-sm'} text-[#008000]`}>{loading ? 'Loading...' : userData.birthdate}</Text>
           </View>
 
           {/* Buttons */}
