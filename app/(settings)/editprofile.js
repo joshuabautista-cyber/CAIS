@@ -1,6 +1,6 @@
 import { View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { Text } from 'react-native';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -9,6 +9,121 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const API_URL = 'http://192.168.107.151:8000/api';
+
+// Reusable Input Component - MOVED OUTSIDE to prevent re-renders
+const FormInput = ({ label, field, placeholder, keyboardType = 'default', multiline = false, readonly = false, required = false, value, onChangeText, focusedField, setFocusedField }) => (
+  <View className="mb-4">
+    <Text className="mb-2 font-montserrat-medium text-sm text-gray-700">
+      {label}{required && <Text className="text-red-500"> *</Text>}
+      {readonly && <Text className="text-gray-400"> (readonly)</Text>}
+    </Text>
+    <View 
+      className={`rounded-xl border-2 bg-gray-50 px-4 ${
+        focusedField === field ? 'border-[#008000]' : 'border-gray-200'
+      } ${readonly ? 'bg-gray-100' : ''}`}
+    >
+      <TextInput
+        className={`py-3.5 font-montserrat text-sm ${readonly ? 'text-gray-500' : 'text-black'} ${multiline ? 'min-h-[60px]' : ''}`}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="#9ca3af"
+        keyboardType={keyboardType}
+        autoCapitalize="none"
+        multiline={multiline}
+        textAlignVertical={multiline ? 'top' : 'center'}
+        onFocus={() => setFocusedField(field)}
+        onBlur={() => setFocusedField('')}
+        editable={!readonly}
+      />
+    </View>
+  </View>
+);
+
+// Small Input for inline fields - MOVED OUTSIDE
+const SmallInput = ({ label, field, placeholder, flex = 1, keyboardType = 'default', value, onChangeText, focusedField, setFocusedField }) => (
+  <View style={{ flex }} className="mr-2">
+    <TextInput
+      className={`rounded-xl border-2 bg-gray-50 px-4 py-3 font-montserrat text-sm text-black ${
+        focusedField === field ? 'border-[#008000]' : 'border-gray-200'
+      }`}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor="#9ca3af"
+      keyboardType={keyboardType}
+      onFocus={() => setFocusedField(field)}
+      onBlur={() => setFocusedField('')}
+    />
+    <Text className="mt-1 font-montserrat text-xs text-[#008000]">{label}</Text>
+  </View>
+);
+
+// Radio Button Component - MOVED OUTSIDE
+const RadioButton = ({ label, field, required = false, value, onSelect }) => (
+  <View className="mb-4">
+    <Text className="mb-3 font-montserrat-medium text-sm text-gray-700">
+      {label}{required && <Text className="text-red-500"> *</Text>}
+    </Text>
+    <View className="flex-row">
+      <TouchableOpacity 
+        className="mr-6 flex-row items-center"
+        onPress={() => onSelect('Yes')}
+      >
+        <View className={`h-5 w-5 rounded-full border-2 items-center justify-center ${
+          value === 'Yes' ? 'border-[#008000]' : 'border-gray-400'
+        }`}>
+          {value === 'Yes' && <View className="h-3 w-3 rounded-full bg-[#008000]" />}
+        </View>
+        <Text className="ml-2 font-montserrat text-sm text-gray-700">Yes</Text>
+      </TouchableOpacity>
+      <TouchableOpacity 
+        className="flex-row items-center"
+        onPress={() => onSelect('No')}
+      >
+        <View className={`h-5 w-5 rounded-full border-2 items-center justify-center ${
+          value === 'No' ? 'border-[#008000]' : 'border-gray-400'
+        }`}>
+          {value === 'No' && <View className="h-3 w-3 rounded-full bg-[#008000]" />}
+        </View>
+        <Text className="ml-2 font-montserrat text-sm text-gray-700">No</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
+// Dropdown Component - MOVED OUTSIDE
+const DropdownInput = ({ label, field, placeholder, required = false, value, onChangeText, focusedField, setFocusedField }) => (
+  <View className="mb-4">
+    <Text className="mb-2 font-montserrat-medium text-sm text-gray-700">
+      {label}{required && <Text className="text-red-500"> *</Text>}
+    </Text>
+    <View 
+      className={`flex-row items-center rounded-xl border-2 bg-gray-50 px-4 ${
+        focusedField === field ? 'border-[#008000]' : 'border-gray-200'
+      }`}
+    >
+      <TextInput
+        className="flex-1 py-3.5 font-montserrat text-sm text-black"
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="#9ca3af"
+        onFocus={() => setFocusedField(field)}
+        onBlur={() => setFocusedField('')}
+      />
+      <Ionicons name="chevron-down" size={20} color="#9ca3af" />
+    </View>
+  </View>
+);
+
+// Section Header Component - MOVED OUTSIDE
+const SectionHeader = ({ title }) => (
+  <View className="mb-4 rounded-xl bg-[#008000]/10 px-4 py-3 flex-row items-center justify-between">
+    <Text className="font-montserrat-semibold text-base text-[#1a365d]">{title}</Text>
+    <Ionicons name="heart" size={20} color="#008000" />
+  </View>
+);
 
 const EditProfile = () => {
   const insets = useSafeAreaInsets();
@@ -126,6 +241,14 @@ const EditProfile = () => {
   });
 
   const [focusedField, setFocusedField] = useState('');
+
+  // Helper to create props for form inputs
+  const getInputProps = (field) => ({
+    value: formData[field],
+    onChangeText: (value) => updateFormData(field, value),
+    focusedField,
+    setFocusedField,
+  });
 
   // Fetch user profile on mount
   useEffect(() => {
@@ -393,142 +516,6 @@ const EditProfile = () => {
     }
   };
 
-  // Reusable Input Component
-  const FormInput = ({ label, field, placeholder, keyboardType = 'default', multiline = false, readonly = false, required = false }) => (
-    <View className="mb-4">
-      <Text className="mb-2 font-montserrat-medium text-sm text-gray-700">
-        {label}{required && <Text className="text-red-500"> *</Text>}
-        {readonly && <Text className="text-gray-400"> (readonly)</Text>}
-      </Text>
-      <View 
-        className={`rounded-xl border-2 bg-gray-50 px-4 ${
-          focusedField === field ? 'border-[#008000]' : 'border-gray-200'
-        } ${readonly ? 'bg-gray-100' : ''}`}
-      >
-        <TextInput
-          className={`py-3.5 font-montserrat text-sm ${readonly ? 'text-gray-500' : 'text-black'} ${multiline ? 'min-h-[60px]' : ''}`}
-          value={formData[field]}
-          onChangeText={(value) => updateFormData(field, value)}
-          placeholder={placeholder}
-          placeholderTextColor="#9ca3af"
-          keyboardType={keyboardType}
-          autoCapitalize="none"
-          multiline={multiline}
-          textAlignVertical={multiline ? 'top' : 'center'}
-          onFocus={() => setFocusedField(field)}
-          onBlur={() => setFocusedField('')}
-          editable={!readonly}
-        />
-      </View>
-    </View>
-  );
-
-  // Small Input for inline fields
-  const SmallInput = ({ label, field, placeholder, flex = 1, keyboardType = 'default' }) => (
-    <View style={{ flex }} className="mr-2">
-      <TextInput
-        className={`rounded-xl border-2 bg-gray-50 px-4 py-3 font-montserrat text-sm text-black ${
-          focusedField === field ? 'border-[#008000]' : 'border-gray-200'
-        }`}
-        value={formData[field]}
-        onChangeText={(value) => updateFormData(field, value)}
-        placeholder={placeholder}
-        placeholderTextColor="#9ca3af"
-        keyboardType={keyboardType}
-        onFocus={() => setFocusedField(field)}
-        onBlur={() => setFocusedField('')}
-      />
-      <Text className="mt-1 font-montserrat text-xs text-[#008000]">{label}</Text>
-    </View>
-  );
-
-  // Radio Button Component
-  const RadioButton = ({ label, field, value, required = false }) => (
-    <View className="mb-4">
-      <Text className="mb-3 font-montserrat-medium text-sm text-gray-700">
-        {label}{required && <Text className="text-red-500"> *</Text>}
-      </Text>
-      <View className="flex-row">
-        <TouchableOpacity 
-          className="mr-6 flex-row items-center"
-          onPress={() => updateFormData(field, 'Yes')}
-        >
-          <View className={`h-5 w-5 rounded-full border-2 items-center justify-center ${
-            formData[field] === 'Yes' ? 'border-[#008000]' : 'border-gray-400'
-          }`}>
-            {formData[field] === 'Yes' && <View className="h-3 w-3 rounded-full bg-[#008000]" />}
-          </View>
-          <Text className="ml-2 font-montserrat text-sm text-gray-700">Yes</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          className="flex-row items-center"
-          onPress={() => updateFormData(field, 'No')}
-        >
-          <View className={`h-5 w-5 rounded-full border-2 items-center justify-center ${
-            formData[field] === 'No' ? 'border-[#008000]' : 'border-gray-400'
-          }`}>
-            {formData[field] === 'No' && <View className="h-3 w-3 rounded-full bg-[#008000]" />}
-          </View>
-          <Text className="ml-2 font-montserrat text-sm text-gray-700">No</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  // Dropdown Component (simplified as TextInput for now)
-  const DropdownInput = ({ label, field, placeholder, options = [], required = false }) => (
-    <View className="mb-4">
-      <Text className="mb-2 font-montserrat-medium text-sm text-gray-700">
-        {label}{required && <Text className="text-red-500"> *</Text>}
-      </Text>
-      <View 
-        className={`flex-row items-center rounded-xl border-2 bg-gray-50 px-4 ${
-          focusedField === field ? 'border-[#008000]' : 'border-gray-200'
-        }`}
-      >
-        <TextInput
-          className="flex-1 py-3.5 font-montserrat text-sm text-black"
-          value={formData[field]}
-          onChangeText={(value) => updateFormData(field, value)}
-          placeholder={placeholder}
-          placeholderTextColor="#9ca3af"
-          onFocus={() => setFocusedField(field)}
-          onBlur={() => setFocusedField('')}
-        />
-        <Ionicons name="chevron-down" size={20} color="#9ca3af" />
-      </View>
-    </View>
-  );
-
-  // Section Header Component
-  const SectionHeader = ({ title }) => (
-    <View className="mb-4 rounded-xl bg-[#008000]/10 px-4 py-3 flex-row items-center justify-between">
-      <Text className="font-montserrat-semibold text-base text-[#1a365d]">{title}</Text>
-      <Ionicons name="heart" size={20} color="#008000" />
-    </View>
-  );
-
-  // File Upload Component
-  const FileUpload = ({ label, field, helperText }) => (
-    <View className="mb-4">
-      <Text className="mb-2 font-montserrat-medium text-sm text-gray-700">{label}</Text>
-      <TouchableOpacity 
-        className="flex-row items-center"
-        onPress={() => Alert.alert('File Upload', 'File picker would open here')}
-      >
-        <View className="rounded border border-gray-300 bg-gray-100 px-3 py-2">
-          <Text className="font-montserrat text-xs text-gray-600">Choose File</Text>
-        </View>
-        <Text className="ml-2 font-montserrat text-sm text-gray-500">
-          {formData[field] || 'No file chosen'}
-        </Text>
-      </TouchableOpacity>
-      {helperText && (
-        <Text className="mt-1 font-montserrat text-xs text-[#008000]">{helperText}</Text>
-      )}
-    </View>
-  );
-
   // Step 1: Basic Information
   const renderStep1 = () => (
     <View>
@@ -536,12 +523,12 @@ const EditProfile = () => {
       
       <Text className="mb-2 font-montserrat-medium text-sm text-gray-700">Full Name</Text>
       <View className="mb-2 flex-row">
-        <SmallInput label="First Name" field="firstname" placeholder="First Name" />
-        <SmallInput label="Middle Name" field="middlename" placeholder="Middle Name" />
+        <SmallInput label="First Name" field="firstname" placeholder="First Name" {...getInputProps('firstname')} />
+        <SmallInput label="Middle Name" field="middlename" placeholder="Middle Name" {...getInputProps('middlename')} />
       </View>
       <View className="mb-4 flex-row">
-        <SmallInput label="Last Name" field="lastname" placeholder="Last Name" />
-        <SmallInput label="Suffix" field="suffix" placeholder="Suffix" flex={0.5} />
+        <SmallInput label="Last Name" field="lastname" placeholder="Last Name" {...getInputProps('lastname')} />
+        <SmallInput label="Suffix" field="suffix" placeholder="Suffix" flex={0.5} {...getInputProps('suffix')} />
       </View>
       
       <View className="flex-row">
@@ -551,6 +538,7 @@ const EditProfile = () => {
             field="student_number" 
             placeholder="Student Number"
             readonly={true}
+            {...getInputProps('student_number')}
           />
         </View>
         <View className="flex-1 ml-2">
@@ -559,6 +547,7 @@ const EditProfile = () => {
             field="course" 
             placeholder="Course"
             readonly={true}
+            {...getInputProps('course')}
           />
         </View>
       </View>
@@ -571,6 +560,7 @@ const EditProfile = () => {
             placeholder="#09XXXXXXXXX"
             keyboardType="phone-pad"
             required={true}
+            {...getInputProps('student_mobile_contact')}
           />
         </View>
         <View className="flex-1 ml-2">
@@ -580,6 +570,7 @@ const EditProfile = () => {
             placeholder="email@example.com"
             keyboardType="email-address"
             required={true}
+            {...getInputProps('student_email')}
           />
         </View>
       </View>
@@ -591,27 +582,28 @@ const EditProfile = () => {
     <View>
       <SectionHeader title="Basic Information" />
       
-      <DropdownInput label="Civil Status" field="civil_status" placeholder="Single" required={true} />
+      <DropdownInput label="Civil Status" field="civil_status" placeholder="Single" required={true} {...getInputProps('civil_status')} />
       
-      <FormInput label="Birthdate" field="date_of_birth" placeholder="DD/MM/YYYY" required={true} />
+      <FormInput label="Birthdate" field="date_of_birth" placeholder="DD/MM/YYYY" required={true} {...getInputProps('date_of_birth')} />
       
-      <FormInput label="Birth Place" field="place_of_birth" placeholder="Enter birth place" required={true} />
+      <FormInput label="Birth Place" field="place_of_birth" placeholder="Enter birth place" required={true} {...getInputProps('place_of_birth')} />
       
-      <FormInput label="Nationality" field="nationality" placeholder="Filipino" required={true} />
+      <FormInput label="Nationality" field="nationality" placeholder="Filipino" required={true} {...getInputProps('nationality')} />
       
-      <DropdownInput label="Sex" field="sex" placeholder="Male" required={true} />
+      <DropdownInput label="Sex" field="sex" placeholder="Male" required={true} {...getInputProps('sex')} />
       
-      <DropdownInput label="Gender" field="gender" placeholder="Select gender" />
+      <DropdownInput label="Gender" field="gender" placeholder="Select gender" {...getInputProps('gender')} />
       
-      <DropdownInput label="Religion" field="religion_id" placeholder="Roman Catholic" required={true} />
+      <DropdownInput label="Religion" field="religion_id" placeholder="Roman Catholic" required={true} {...getInputProps('religion_id')} />
       
-      <FormInput label="Birth Order (e.g 1st, 2nd, 3rd)" field="birth_order" placeholder="1st" required={true} />
+      <FormInput label="Birth Order (e.g 1st, 2nd, 3rd)" field="birth_order" placeholder="1st" required={true} {...getInputProps('birth_order')} />
       
       <DropdownInput 
         label="Is any of your sibling is currently enrolled in college?" 
         field="sibling_in_college" 
         placeholder="No"
         required={true}
+        {...getInputProps('sibling_in_college')}
       />
       
       <DropdownInput 
@@ -619,6 +611,7 @@ const EditProfile = () => {
         field="sibling_college_graduate" 
         placeholder="No"
         required={true}
+        {...getInputProps('sibling_college_graduate')}
       />
     </View>
   );
@@ -632,30 +625,30 @@ const EditProfile = () => {
         Permanent Address<Text className="text-red-500"> *</Text>
       </Text>
       
-      <FormInput label="" field="permanent_address" placeholder="House no./Street/Brgy" />
+      <FormInput label="" field="permanent_address" placeholder="House no./Street/Brgy" {...getInputProps('permanent_address')} />
       <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">House no./Street/Brgy</Text>
       
-      <DropdownInput label="" field="permanent_region" placeholder="Region III" />
+      <DropdownInput label="" field="permanent_region" placeholder="Region III" {...getInputProps('permanent_region')} />
       <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">Region</Text>
       
       <View className="flex-row">
         <View className="flex-1 mr-2">
-          <DropdownInput label="" field="permanent_province" placeholder="Nueva Ecija" />
+          <DropdownInput label="" field="permanent_province" placeholder="Nueva Ecija" {...getInputProps('permanent_province')} />
           <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">Province</Text>
         </View>
         <View className="flex-1 ml-2">
-          <DropdownInput label="" field="permanent_city" placeholder="Science City of Muñoz" />
+          <DropdownInput label="" field="permanent_city" placeholder="Science City of Muñoz" {...getInputProps('permanent_city')} />
           <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">City</Text>
         </View>
       </View>
       
       <View className="flex-row">
         <View className="flex-1 mr-2">
-          <FormInput label="" field="zipcode" placeholder="3119" keyboardType="numeric" />
+          <FormInput label="" field="zipcode" placeholder="3119" keyboardType="numeric" {...getInputProps('zipcode')} />
           <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">Postal / Zip Code</Text>
         </View>
         <View className="flex-1 ml-2">
-          <FormInput label="" field="country" placeholder="Philippines" />
+          <FormInput label="" field="country" placeholder="Philippines" {...getInputProps('country')} />
           <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">Country</Text>
         </View>
       </View>
@@ -680,30 +673,30 @@ const EditProfile = () => {
         <Text className="font-montserrat text-xs text-[#008000] underline">same as permanent address</Text>
       </TouchableOpacity>
       
-      <FormInput label="" field="clsu_address" placeholder="House no./Street/Brgy" />
+      <FormInput label="" field="clsu_address" placeholder="House no./Street/Brgy" {...getInputProps('clsu_address')} />
       <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">House no./Street/Brgy</Text>
       
-      <DropdownInput label="" field="clsu_region" placeholder="Region III" />
+      <DropdownInput label="" field="clsu_region" placeholder="Region III" {...getInputProps('clsu_region')} />
       <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">Region</Text>
       
       <View className="flex-row">
         <View className="flex-1 mr-2">
-          <DropdownInput label="" field="clsu_province" placeholder="Nueva Ecija" />
+          <DropdownInput label="" field="clsu_province" placeholder="Nueva Ecija" {...getInputProps('clsu_province')} />
           <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">Province</Text>
         </View>
         <View className="flex-1 ml-2">
-          <DropdownInput label="" field="clsu_city" placeholder="Science City of Muñoz" />
+          <DropdownInput label="" field="clsu_city" placeholder="Science City of Muñoz" {...getInputProps('clsu_city')} />
           <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">City</Text>
         </View>
       </View>
       
       <View className="flex-row">
         <View className="flex-1 mr-2">
-          <FormInput label="" field="clsu_zipcode" placeholder="3119" keyboardType="numeric" />
+          <FormInput label="" field="clsu_zipcode" placeholder="3119" keyboardType="numeric" {...getInputProps('clsu_zipcode')} />
           <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">Postal / Zip Code</Text>
         </View>
         <View className="flex-1 ml-2">
-          <FormInput label="" field="clsu_country" placeholder="Philippines" />
+          <FormInput label="" field="clsu_country" placeholder="Philippines" {...getInputProps('clsu_country')} />
           <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">Country</Text>
         </View>
       </View>
@@ -716,10 +709,10 @@ const EditProfile = () => {
       <SectionHeader title="Basic Information" />
       
       <Text className="mb-2 font-montserrat-medium text-sm text-gray-700">
-        Name of Father (lastname, firstname mi)<Text className="text-red-500"> *</Text>
+        Name of Father (Firstname, M.I, Lastname)<Text className="text-red-500"> *</Text>
       </Text>
-      <View className="flex-row mb-2">
-        <View className="flex-1 mr-2">
+      <View className="flex-1 mb-2">
+        <View className="flex-1 mr-1">
           <TextInput
             className={`rounded-xl border-2 bg-gray-50 px-4 py-3 font-montserrat text-sm text-black ${
               focusedField === 'father_fname' ? 'border-[#008000]' : 'border-gray-200'
@@ -732,12 +725,9 @@ const EditProfile = () => {
             onBlur={() => setFocusedField('')}
           />
         </View>
-        <View className="flex-1 ml-2">
-          <FormInput label="Contact Number" field="father_contact" placeholder="N/A" />
-        </View>
       </View>
-      <View className="flex-row mb-2">
-        <View className="flex-1 mr-2">
+      <View className="flex-1 mb-2">
+        <View className="flex-1 mr-1">
           <TextInput
             className={`rounded-xl border-2 bg-gray-50 px-4 py-3 font-montserrat text-sm text-black ${
               focusedField === 'father_mname' ? 'border-[#008000]' : 'border-gray-200'
@@ -750,9 +740,8 @@ const EditProfile = () => {
             onBlur={() => setFocusedField('')}
           />
         </View>
-        <View className="flex-1 ml-2" />
       </View>
-      <View className="flex-row mb-4">
+      <View className="flex-1 mb-2">
         <View className="flex-1 mr-2">
           <TextInput
             className={`rounded-xl border-2 bg-gray-50 px-4 py-3 font-montserrat text-sm text-black ${
@@ -766,20 +755,22 @@ const EditProfile = () => {
             onBlur={() => setFocusedField('')}
           />
         </View>
-        <View className="flex-1 ml-2" />
+      </View>
+      <View className="flex-1 mb-4">
+        <FormInput label="Contact Number" field="father_contact" placeholder="N/A" {...getInputProps('father_contact')} />
       </View>
       
-      <DropdownInput label="Educational Attainment" field="father_education" placeholder="Not College Graduate" required={true} />
+      <DropdownInput label="Educational Attainment" field="father_education" placeholder="Not College Graduate" required={true} {...getInputProps('father_education')} />
       
-      <FormInput label="Occupation" field="father_occupation" placeholder="N/A" required={true} />
+      <FormInput label="Occupation" field="father_occupation" placeholder="N/A" required={true} {...getInputProps('father_occupation')} />
       
       <View className="my-2 h-[1px] bg-gray-200" />
       
       <Text className="mb-2 font-montserrat-medium text-sm text-gray-700">
         Name of Mother (Firstname, M.I, Lastname)<Text className="text-red-500"> *</Text>
       </Text>
-      <View className="flex-row mb-2">
-        <View className="flex-1 mr-2">
+      <View className="flex-1 mb-2">
+        <View className="flex-1 mr-1">
           <TextInput
             className={`rounded-xl border-2 bg-gray-50 px-4 py-3 font-montserrat text-sm text-black ${
               focusedField === 'mother_fname' ? 'border-[#008000]' : 'border-gray-200'
@@ -792,11 +783,8 @@ const EditProfile = () => {
             onBlur={() => setFocusedField('')}
           />
         </View>
-        <View className="flex-1 ml-2">
-          <FormInput label="Contact Number" field="mother_contact" placeholder="09XXXXXXXXX" />
-        </View>
       </View>
-      <View className="flex-row mb-2">
+      <View className="flex-1 mb-2">
         <View className="flex-1 mr-2">
           <TextInput
             className={`rounded-xl border-2 bg-gray-50 px-4 py-3 font-montserrat text-sm text-black ${
@@ -810,9 +798,8 @@ const EditProfile = () => {
             onBlur={() => setFocusedField('')}
           />
         </View>
-        <View className="flex-1 ml-2" />
       </View>
-      <View className="flex-row mb-4">
+      <View className="flex-1 mb-2">
         <View className="flex-1 mr-2">
           <TextInput
             className={`rounded-xl border-2 bg-gray-50 px-4 py-3 font-montserrat text-sm text-black ${
@@ -826,12 +813,14 @@ const EditProfile = () => {
             onBlur={() => setFocusedField('')}
           />
         </View>
-        <View className="flex-1 ml-2" />
+      </View>
+      <View className="flex-1 mb-4">
+        <FormInput label="Contact Number" field="mother_contact" placeholder="09XXXXXXXXX" {...getInputProps('mother_contact')} />
       </View>
       
-      <DropdownInput label="Educational Attainment" field="mother_education" placeholder="Not College Graduate" required={true} />
+      <DropdownInput label="Educational Attainment" field="mother_education" placeholder="Not College Graduate" required={true} {...getInputProps('mother_education')} />
       
-      <FormInput label="Occupation" field="mother_occupation" placeholder="N/A" required={true} />
+      <FormInput label="Occupation" field="mother_occupation" placeholder="N/A" required={true} {...getInputProps('mother_occupation')} />
       
       <View className="my-2 h-[1px] bg-gray-200" />
       
@@ -842,6 +831,7 @@ const EditProfile = () => {
             field="guardian_name" 
             placeholder="Del Rosario, Carolyn M."
             required={true}
+            {...getInputProps('guardian_name')}
           />
         </View>
         <View className="flex-1 ml-2">
@@ -851,6 +841,7 @@ const EditProfile = () => {
             placeholder="09XXXXXXXXX"
             keyboardType="phone-pad"
             required={true}
+            {...getInputProps('guardian_contact')}
           />
         </View>
       </View>
@@ -860,6 +851,7 @@ const EditProfile = () => {
         field="emergency_person" 
         placeholder="Carolyn M. Del Rosario"
         required={true}
+        {...getInputProps('emergency_person')}
       />
     </View>
   );
@@ -1020,20 +1012,22 @@ const EditProfile = () => {
     <View>
       <SectionHeader title="Other Details" />
       
-      <RadioButton label="PWD/Handicap" field="disability" required={true} />
+      <RadioButton 
+        label="PWD/Handicap" 
+        field="disability" 
+        required={true} 
+        value={formData.disability}
+        onSelect={(val) => updateFormData('disability', val)}
+      />
       
       <FormInput 
         label="(if Yes) Give Particular:" 
         field="disability_type" 
         placeholder="PWD/Handicap"
+        {...getInputProps('disability_type')}
       />
       <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">PWD/Handicap</Text>
       
-      <FileUpload 
-        label="ID/Medical Certificate" 
-        field="disability_proof"
-        helperText="Proof of PWD/Handicap"
-      />
     </View>
   );
 
@@ -1042,20 +1036,23 @@ const EditProfile = () => {
     <View>
       <SectionHeader title="Other Details" />
       
-      <RadioButton label="Member of minority group" field="indigenous" required={true} />
+      <RadioButton 
+        label="Member of minority group" 
+        field="indigenous" 
+        required={true} 
+        value={formData.indigenous}
+        onSelect={(val) => updateFormData('indigenous', val)}
+      />
       
       <FormInput 
         label="(if Yes) Give Particular minority group:" 
         field="indigenous_type" 
         placeholder="Member of minority group"
+        {...getInputProps('indigenous_type')}
       />
       <Text className="-mt-3 mb-3 font-montserrat text-xs text-[#008000]">Member of minority group</Text>
       
-      <FileUpload 
-        label="ID/Proof" 
-        field="indigenous_proof"
-        helperText="Proof of membership in minority group"
-      />
+      
     </View>
   );
 
@@ -1075,12 +1072,7 @@ const EditProfile = () => {
         field="family_income" 
         placeholder="Please Select"
         required={true}
-      />
-      
-      <FileUpload 
-        label="Certificate of Indigency/Proof of No Income/ITR" 
-        field="itr"
-        helperText="Any"
+        {...getInputProps('family_income')}
       />
     </View>
   );
